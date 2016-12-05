@@ -32,8 +32,7 @@ import (
 	"k8s.io/client-go/1.5/tools/cache"
 )
 
-// Operator manages lify cycle of Prometheus deployments and
-// monitoring configurations.
+// Operator manages Funktion Deployments
 type Operator struct {
 	kclient         *kubernetes.Clientset
 	//funktionClient *rest.RESTClient
