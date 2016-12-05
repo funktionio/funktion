@@ -1,0 +1,20 @@
+package: github.com/fabric8io/funktion-operator
+import:
+- package: github.com/go-kit/kit
+  version: ^0.3.0
+  subpackages:
+  - log
+- package: k8s.io/client-go
+  version: release-1.5
+  subpackages:
+  - 1.5/kubernetes
+  - 1.5/rest
+  - 1.5/tools/clientcmd
+- package: github.com/jpillora/go-ogle-analytics
+- package: github.com/gogo/protobuf
+  version: ^0.3.0
+  subpackages:
+  - proto
+  - sortkeys
+- package: github.com/spf13/pflag
+- package: github.com/mitchellh/mapstructure

@@ -1,0 +1,23 @@
+---
+apiVersion: "v1"
+kind: "ConfigMap"
+metadata:
+  name: "subscription1"
+  labels:
+    funktion.fabric8.io/kind: "Subscription"
+data:
+  image: quickstart/funktion-java-example:snapshot-161203-135254-0061
+  application.properties: |
+    # spring application proeprties file
+    welcome = Hello from Kubernetes ConfigMap!!!
+    dummy = some value
+  funktion.yml: |
+    ---
+    rules:
+      - trigger: timer://foo?fixedRate=true&period=5000
+        trace: true
+        actions:
+        - kind: endpoint
+          url: http://fabric8-forge/
+        - kind: endpoint
+          url: log:example
