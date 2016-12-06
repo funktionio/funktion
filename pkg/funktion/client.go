@@ -27,10 +27,9 @@ import (
 
 const resyncPeriod = 30 * time.Second
 
-// NewFunktionListWatch returns a new ListWatch on the Funktion resource.
-func NewFunktionListWatch(client *kubernetes.Clientset, listOpts api.ListOptions) *cache.ListWatch {
+// NewConfigMapListWatch returns a new ListWatch for ConfigMaps with the given listOptions
+func NewConfigMapListWatch(client *kubernetes.Clientset, listOpts api.ListOptions) *cache.ListWatch {
 	configMaps := client.ConfigMaps(api.NamespaceAll)
-	//configMaps := client.ConfigMaps("funky")
 
 	return &cache.ListWatch{
 		ListFunc: func(options api.ListOptions) (runtime.Object, error) {
@@ -42,9 +41,20 @@ func NewFunktionListWatch(client *kubernetes.Clientset, listOpts api.ListOptions
 	}
 }
 
-// CreateFunktionListOptions returns the default selector for Funktions
-func CreateFunktionListOptions() (*api.ListOptions, error) {
-	selector, err := labels.Parse("funktion.fabric8.io/kind = Subscription")
+// CreateSubscriptionListOptions returns the default selector for Subscription resources
+func CreateSubscriptionListOptions() (*api.ListOptions, error) {
+	selector, err := labels.Parse("kind.funktion.fabric8.io=Subscription")
+	if err != nil {
+		return nil, err
+	}
+	listOpts := api.ListOptions{
+		LabelSelector: selector,
+	}
+	return &listOpts, nil
+}
+// CreateConnectorListOptions returns the default selector for Connector resources
+func CreateConnectorListOptions() (*api.ListOptions, error) {
+	selector, err := labels.Parse("kind.funktion.fabric8.io=Connector")
 	if err != nil {
 		return nil, err
 	}

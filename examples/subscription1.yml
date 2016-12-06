@@ -4,9 +4,9 @@ kind: "ConfigMap"
 metadata:
   name: "subscription1"
   labels:
-    funktion.fabric8.io/kind: "Subscription"
+    kind.funktion.fabric8.io: "Subscription"
+    connector: "timer"
 data:
-  image: quickstart/funktion-java-example:snapshot-161203-135254-0061
   application.properties: |
     # spring application proeprties file
     welcome = Hello from Kubernetes ConfigMap!!!

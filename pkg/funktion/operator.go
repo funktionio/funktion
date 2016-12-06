@@ -30,6 +30,11 @@ import (
 	"k8s.io/client-go/1.5/pkg/util/wait"
 	"k8s.io/client-go/1.5/rest"
 	"k8s.io/client-go/1.5/tools/cache"
+	"strings"
+)
+
+const (
+	ConnectorLabel = "connector"
 )
 
 // Operator manages Funktion Deployments
@@ -38,6 +43,7 @@ type Operator struct {
 	//funktionClient *rest.RESTClient
 	logger          log.Logger
 
+	connectorInf cache.SharedIndexInformer
 	subscriptionInf cache.SharedIndexInformer
 	deploymentInf   cache.SharedIndexInformer
 
@@ -59,15 +65,23 @@ func New(cfg *rest.Config, logger log.Logger) (*Operator, error) {
 	}
 
 	logger.Log("msg", "creating ListOptions")
-	listOpts, err := CreateFunktionListOptions()
+	subscriptionListOpts, err := CreateSubscriptionListOptions()
+	if err != nil {
+		return nil, err
+	}
+	connectorListOpts, err := CreateConnectorListOptions()
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Log("msg", fmt.Sprintf("got %v", listOpts.LabelSelector))
-
+	c.connectorInf = cache.NewSharedIndexInformer(
+		NewConfigMapListWatch(c.kclient, *connectorListOpts),
+		&v1.ConfigMap{},
+		resyncPeriod,
+		cache.Indexers{},
+	)
 	c.subscriptionInf = cache.NewSharedIndexInformer(
-		NewFunktionListWatch(c.kclient, *listOpts),
+		NewConfigMapListWatch(c.kclient, *subscriptionListOpts),
 		&v1.ConfigMap{},
 		resyncPeriod,
 		cache.Indexers{},
@@ -79,6 +93,11 @@ func New(cfg *rest.Config, logger log.Logger) (*Operator, error) {
 		cache.Indexers{},
 	)
 
+	c.connectorInf.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.handleAddConnector,
+		DeleteFunc: c.handleDeleteConnector,
+		UpdateFunc: c.handleUpdateConnector,
+	})
 	c.subscriptionInf.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.handleAddSubscription,
 		DeleteFunc: c.handleDeleteSubscription,
@@ -111,6 +130,7 @@ func (c *Operator) Run(stopc <-chan struct{}) error {
 
 	go c.worker()
 
+	go c.connectorInf.Run(stopc)
 	go c.subscriptionInf.Run(stopc)
 	go c.deploymentInf.Run(stopc)
 
@@ -125,6 +145,38 @@ func (c *Operator) keyFunc(obj interface{}) (string, bool) {
 		return k, false
 	}
 	return k, true
+}
+
+func (c *Operator) handleAddConnector(obj interface{}) {
+	key, ok := c.keyFunc(obj)
+	if !ok {
+		return
+	}
+
+	analytics.ConnectorCreated()
+	c.logger.Log("msg", "Connector added", "key", key)
+	//c.enqueue(key)
+}
+
+func (c *Operator) handleDeleteConnector(obj interface{}) {
+	key, ok := c.keyFunc(obj)
+	if !ok {
+		return
+	}
+
+	analytics.ConnectorDeleted()
+	c.logger.Log("msg", "Connector deleted", "key", key)
+	//c.enqueue(key)
+}
+
+func (c *Operator) handleUpdateConnector(old, cur interface{}) {
+	key, ok := c.keyFunc(cur)
+	if !ok {
+		return
+	}
+
+	c.logger.Log("msg", "Connector updated", "key", key)
+	//c.enqueue(key)
 }
 
 func (c *Operator) handleAddSubscription(obj interface{}) {
@@ -257,24 +309,40 @@ func (c *Operator) sync(key string) error {
 		return err
 	}
 	if !exists {
-		return c.destroyFunktion(key)
+		return c.destroySubscription(key)
+	}
+	subscription := obj.(*v1.ConfigMap)
+	c.logger.Log("msg", fmt.Sprintf("ConfigMap has name %s labels %v and annotations %v", subscription.Name, subscription.Labels, subscription.Annotations), "key", key)
+
+	connectorName := subscription.Labels[ConnectorLabel]
+	if len(connectorName) == 0 {
+		return fmt.Errorf("Subscription %s/%s does not have label %s", subscription.Namespace, subscription.Name, ConnectorLabel)
+	}
+	ns := subscription.Namespace
+	connectorKey := connectorName
+	if len(ns) > 0 && !strings.Contains(connectorName, "/") {
+		connectorKey = ns + "/" + connectorKey
+	}
+	obj, exists, err = c.connectorInf.GetIndexer().GetByKey(connectorKey)
+	if err != nil {
+		return err
+	}
+	if (!exists) {
+		return fmt.Errorf("Connector %s does not exist for Subscription %s/%s current connector keys are %v", connectorKey, subscription.Namespace, subscription.Name, c.connectorInf.GetIndexer().ListKeys())
+	}
+	connector := obj.(*v1.ConfigMap)
+	if connector == nil {
+		return fmt.Errorf("Connector %s does not exist for Subscription %s/%s", connectorKey, subscription.Namespace, subscription.Name)
 	}
 
-	cm := obj.(*v1.ConfigMap)
-
-
-	c.logger.Log("msg", fmt.Sprintf("ConfigMap has name %s labels %v and annotations %v", cm.Name, cm.Labels, cm.Annotations), "key", key)
-
-	deploymentClient := c.kclient.Extensions().Deployments(cm.Namespace)
-
-	// Ensure we have a Deployment running Funktion deployed.
+	deploymentClient := c.kclient.Extensions().Deployments(subscription.Namespace)
 	obj, exists, err = c.deploymentInf.GetIndexer().GetByKey(key)
 	if err != nil {
 		return err
 	}
 
 	if !exists {
-		d, err := makeDeployment(*cm, nil)
+		d, err := makeDeployment(subscription, connector, nil)
 		if err != nil {
 			return fmt.Errorf("make deployment: %s", err)
 		}
@@ -283,18 +351,17 @@ func (c *Operator) sync(key string) error {
 		}
 		return nil
 	}
-	d, err := makeDeployment(*cm, obj.(*extensionsobj.Deployment))
+	d, err := makeDeployment(subscription, connector, obj.(*extensionsobj.Deployment))
 	if err != nil {
 		return fmt.Errorf("update deployment: %s", err)
 	}
 	if _, err := deploymentClient.Update(d); err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func (c *Operator) destroyFunktion(key string) error {
+func (c *Operator) destroySubscription(key string) error {
 	obj, exists, err := c.deploymentInf.GetStore().GetByKey(key)
 	if err != nil {
 		return err

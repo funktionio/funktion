@@ -46,9 +46,17 @@ func mustClient() *ga.Client {
 }
 
 func SubscriptionCreated() {
-	send(ga.NewEvent(category, "funktion_created"))
+	send(ga.NewEvent(category, "subscription_created"))
 }
 
 func SubscriptionDeleted() {
-	send(ga.NewEvent(category, "funktion_deleted"))
+	send(ga.NewEvent(category, "subscription_deleted"))
+}
+
+func ConnectorCreated() {
+	send(ga.NewEvent(category, "connector_created"))
+}
+
+func ConnectorDeleted() {
+	send(ga.NewEvent(category, "connector_deleted"))
 }
