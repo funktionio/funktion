@@ -4,7 +4,7 @@ kind: "ConfigMap"
 metadata:
   name: "subscription1"
   labels:
-    kind.funktion.fabric8.io: "Subscription"
+    funktion.fabric8.io/kind: "Subscription"
     connector: "timer"
 data:
   application.properties: |

@@ -312,7 +312,6 @@ func (c *Operator) sync(key string) error {
 		return c.destroySubscription(key)
 	}
 	subscription := obj.(*v1.ConfigMap)
-	c.logger.Log("msg", fmt.Sprintf("ConfigMap has name %s labels %v and annotations %v", subscription.Name, subscription.Labels, subscription.Annotations), "key", key)
 
 	connectorName := subscription.Labels[ConnectorLabel]
 	if len(connectorName) == 0 {

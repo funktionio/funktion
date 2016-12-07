@@ -43,7 +43,7 @@ func NewConfigMapListWatch(client *kubernetes.Clientset, listOpts api.ListOption
 
 // CreateSubscriptionListOptions returns the default selector for Subscription resources
 func CreateSubscriptionListOptions() (*api.ListOptions, error) {
-	selector, err := labels.Parse("kind.funktion.fabric8.io=Subscription")
+	selector, err := labels.Parse("funktion.fabric8.io/kind=Subscription")
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func CreateSubscriptionListOptions() (*api.ListOptions, error) {
 }
 // CreateConnectorListOptions returns the default selector for Connector resources
 func CreateConnectorListOptions() (*api.ListOptions, error) {
-	selector, err := labels.Parse("kind.funktion.fabric8.io=Connector")
+	selector, err := labels.Parse("funktion.fabric8.io/kind=Connector")
 	if err != nil {
 		return nil, err
 	}
