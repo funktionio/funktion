@@ -19,6 +19,8 @@ In a sense funktion is a [serverless](https://www.quora.com/What-is-Serverless-C
 You can get help on the available commands via:
     
     funktion
+
+### Browsing resources
     
 To list all the Connectors or Subscriptions try:
     
@@ -30,6 +32,8 @@ or to save typing you can use:
      funktion get c
      funktion get s
 
+### Deleting resources
+
 You can delete a Connector or Subscription via:
 
     funktion delete connector foo
@@ -39,7 +43,17 @@ Or to remove all the Subscriptions or Connectors use `--all`
 
     funktion delete subscription --all
 
-#### Running the Operator
+### Installing Connectors
+
+To install the default connectors into your namespace type the following:
+ 
+    funktion install
+
+There's over [200 connectors](http://camel.apache.org/components.html) provided out of the box. If you only want to install a number of them you can specify their names as parameters
+
+     funktion install amqp kafka timer
+
+### Running the Operator
 
 You can run the funktion operator from the command line if you prefer:
  
@@ -48,7 +62,7 @@ You can run the funktion operator from the command line if you prefer:
 Though ideally we'd run the `funktion application` inside kubernetes; via a helm chart, `kubectl apply` or the `Run...` button in the [fabric8 developer console](http://fabric8.io/guide/console.html)    
 
 
-#### Subscribing
+### Subscribing to events
 
 To create a new subscription for a connector try the following:
 
@@ -64,7 +78,7 @@ Once a pod has started for the `Deployment` you can then view the logs of a subs
  
     kubectl logs -f nameOfSubscription[TAB]
 
-##### Scaling a Subscription
+#### Scaling a Subscription
 
 If you want to stop a subscription type:
 
@@ -74,7 +88,7 @@ To start it again:
 
     kubectl scale --replicas=1 deployment nameOfSubscription
     
-##### Using kubectl directly
+#### Using kubectl directly
 
 You can also create a Subscription using `kubectl` if you prefer:
 
