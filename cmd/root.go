@@ -46,6 +46,7 @@ func createKubernetesClient(cmd *cobra.Command, kubeConfigPath string, kubeclien
 	//overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
 	//clientcmd.BindOverrideFlags(overrides, cmd.Flags(), overrideFlags)
 
+
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 	cfg, err := kubeConfig.ClientConfig()
 	if err != nil {
@@ -57,12 +58,13 @@ func createKubernetesClient(cmd *cobra.Command, kubeConfigPath string, kubeclien
 		return err
 	}
 	*kubeclientHolder = kubeclient
-	// TODO how to figure out the default namespace???
-	/*
-	if len(namespace) == 0 {
-		*namespace = defaultNamespace;
+	if len(*namespace) == 0 {
+		ns, _, err := kubeConfig.Namespace()
+		if err != nil {
+			return fmt.Errorf("Could not deduce default namespace due to: %v", err)
+		}
+		*namespace = ns
 	}
-	*/
 	return nil
 }
 

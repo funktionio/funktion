@@ -33,10 +33,6 @@ import (
 	"strings"
 )
 
-const (
-	ConnectorLabel = "connector"
-)
-
 // Operator manages Funktion Deployments
 type Operator struct {
 	kclient         *kubernetes.Clientset

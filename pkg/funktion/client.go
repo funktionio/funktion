@@ -25,7 +25,16 @@ import (
 	"k8s.io/client-go/1.5/tools/cache"
 )
 
-const resyncPeriod = 30 * time.Second
+const (
+	KindLabel = "funktion.fabric8.io/kind"
+	ConnectorLabel = "connector"
+
+	ConnectorKind = "Connector"
+	SubscriptionKind = "Subscription"
+
+
+	resyncPeriod = 30 * time.Second
+)
 
 // NewConfigMapListWatch returns a new ListWatch for ConfigMaps with the given listOptions
 func NewConfigMapListWatch(client *kubernetes.Clientset, listOpts api.ListOptions) *cache.ListWatch {
@@ -43,7 +52,7 @@ func NewConfigMapListWatch(client *kubernetes.Clientset, listOpts api.ListOption
 
 // CreateSubscriptionListOptions returns the default selector for Subscription resources
 func CreateSubscriptionListOptions() (*api.ListOptions, error) {
-	selector, err := labels.Parse("funktion.fabric8.io/kind=Subscription")
+	selector, err := labels.Parse(KindLabel + "=" + SubscriptionKind)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +63,7 @@ func CreateSubscriptionListOptions() (*api.ListOptions, error) {
 }
 // CreateConnectorListOptions returns the default selector for Connector resources
 func CreateConnectorListOptions() (*api.ListOptions, error) {
-	selector, err := labels.Parse("funktion.fabric8.io/kind=Connector")
+	selector, err := labels.Parse(KindLabel + "=" + ConnectorKind)
 	if err != nil {
 		return nil, err
 	}

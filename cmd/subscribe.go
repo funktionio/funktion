@@ -15,15 +15,17 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api"
-	"strconv"
-	"net/url"
-	"strings"
-	"bytes"
+	"k8s.io/client-go/1.5/pkg/api/v1"
+	"github.com/fabric8io/funktion-operator/pkg/funktion"
 )
 
 type subscribeCmd struct {
@@ -68,15 +70,81 @@ func newSubscribeCmd() *cobra.Command {
 
 func (p *subscribeCmd) run() error {
 	var err error
+	update := false
 	name := p.subscriptionName
 	if len(name) == 0 {
 		name, err = p.generateName()
 		if err != nil {
 			return err
 		}
+	} else {
+		_, err = p.kubeclient.ConfigMaps(p.namespace).Get(name)
+		if err == nil {
+			update = true
+		}
 	}
-	fmt.Printf("Generating subscription %s from %s to %s\n", name, p.fromUrl, p.toUrl)
-	return nil
+	fromUrl := p.fromUrl
+	toUrl := p.toUrl
+	connectorName, err := urlScheme(fromUrl)
+	if err != nil {
+		return err
+	}
+	if len(connectorName) == 0 {
+		return fmt.Errorf("No scheme specified for from URL %s", fromUrl)
+	}
+	err = p.checkConnectorExists(connectorName)
+	if err != nil {
+		return err
+	}
+
+
+	funktionYml := ""
+	applicationProperties := "# put your spring boot configuration properties here..."
+
+	labels := map[string]string{
+		funktion.KindLabel: funktion.SubscriptionKind,
+		funktion.ConnectorLabel: connectorName,
+	}
+	data := map[string]string{
+		funktion.FunktionYmlProperty: funktionYml,
+		funktion.ApplicationPropertiesProperty: applicationProperties,
+
+	}
+	cm := v1.ConfigMap{
+		ObjectMeta: v1.ObjectMeta{
+			Name: name,
+			Namespace: p.namespace,
+			Labels: labels,
+		},
+		Data: data,
+	}
+	if update {
+		_, err = p.kubeclient.ConfigMaps(p.namespace).Update(&cm)
+	} else {
+		_, err = p.kubeclient.ConfigMaps(p.namespace).Create(&cm)
+	}
+	if err == nil {
+		fmt.Printf("Created subscription %s from %s => %s\n", name, fromUrl, toUrl)
+	}
+	return err
+}
+
+func (p *subscribeCmd) checkConnectorExists(name string) error {
+	listOpts, err := funktion.CreateConnectorListOptions()
+	if err != nil {
+		return err
+	}
+	cms := p.kubeclient.ConfigMaps(p.namespace)
+	resources, err := cms.List(*listOpts)
+	if err != nil {
+		return err
+	}
+	for _, resource := range resources.Items {
+		if resource.Name == name {
+			return nil
+		}
+	}
+	return fmt.Errorf("Connector \"%s\" not found so cannot create this subscription", name)
 }
 
 func (p *subscribeCmd) generateName() (string, error) {
@@ -116,7 +184,15 @@ func (p *subscribeCmd) generateName() (string, error) {
 		}
 		counter++
 	}
+}
 
+func urlScheme(text string) (string, error) {
+	u, err := url.Parse(text)
+	if err != nil {
+		return "", fmt.Errorf("Warning: cannot parse the from URL %s as got %v\n", text, err)
+	} else {
+		return u.Scheme, nil
+	}
 }
 
 // convertToSafeResourceName converts the given text into a usable kubernetes name

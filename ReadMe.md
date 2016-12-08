@@ -22,18 +22,67 @@ The collection of `Connector` resources installed in a kubernetes namespace crea
 Then a `Subscription` can be created at any time by users from a `Connector` with a custom configuration (e.g. choosing a particular queue or topic in a messaging system or a particular table in a database or folder in a file system).
 
 
-### Using Funktion Operator
-
-First you need to install the Connectors in your Kubernetes namespace
-
-TODO
-
-Now you can create a subscription using a YAML configuration like this:
-
-   kubectl apply -f https://github.com/fabric8io/funktion-operator/blob/master/examples/subscription1.yml
+### Using the CLI
    
-Hopefully we'll have a simple CLI and web UI for doing this soon!   
-   
+You can get help on the available commands via:
+    
+    funktion
+    
+To list all the Connectors or Subscriptions try:
+    
+    funktion get connector
+    funktion get subscription
+
+or to save typing you can use:
+
+     funktion get c
+     funktion get s
+
+You can delete a Connector or Subscription via:
+
+    funktion delete connector foo
+    funktion delete subscription bar
+
+Or to remove all the Subscriptions or Connectors use `--all`
+
+    funktion delete subscription --all
+
+#### Subscribing
+
+To create a new subscription for a connector try the following:
+
+    funktion subscribe --from timer://bar?period=5000 --to http://foo/
+
+This will generate a new Subscription which will result in a new Deployment being created and one or more Pods should spin up.
+ 
+You can then view the logs of a subscription via `kubectl`
+ 
+    kubectl logs -f nameOfSubscription[TAB]
+
+#### Scaling a Subscription
+
+If you want to stop a subscription type:
+
+    kubectl scale --replicas=0 deployment nameOfSubscription
+
+To start it again:
+
+    kubectl scale --replicas=1 deployment nameOfSubscription
+    
+### Using kubectl directly
+
+You can also create a Subscription using `kubectl` if you prefer:
+
+    kubectl apply -f https://github.com/fabric8io/funktion-operator/blob/master/examples/subscription1.yml
+
+You can view all the Connectors and Subscriptions via:
+
+    kubectl get cm
+
+Or delete them via
+
+    kubectl delete cm nameOfConnectorOrSubscription
+    
 ### Debugging
    
 If you ever need to you can debug any `Subscription` as each Subscription matches a `Deployment` of one or more pods. So you can just debug that pod which typically is a regular Spring Boot and camel application.
