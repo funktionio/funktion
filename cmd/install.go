@@ -44,6 +44,7 @@ type installCmd struct {
 	version        string
 	mavenRepo      string
 	replace        bool
+	listConnectors bool
 }
 
 func init() {
@@ -74,6 +75,7 @@ func newInstallCmd() *cobra.Command {
 	f.StringVarP(&p.namespace, "namespace", "n", "", "the namespace to query")
 	f.StringVarP(&p.version, "version", "v", "latest", "the version of the connectors to install")
 	f.BoolVar(&p.replace, "replace", false, "if enabled we will replace exising Connectors with installed version")
+	f.BoolVar(&p.listConnectors, "list", false, "list all the available Connectors but don't install them")
 	return cmd
 }
 
@@ -116,6 +118,10 @@ func (p *installCmd) run() error {
 		onlyNames[onlyName] = true
 	}
 
+	if p.listConnectors {
+		fmt.Printf("Version %s has Connectors:\n", version)
+	}
+
 	count := 0
 	ignored := 0
 	for _, item := range list.Items {
@@ -124,32 +130,40 @@ func (p *installCmd) run() error {
 			return err
 		}
 		name := cm.Name
-		if len(onlyNames) > 0 {
-			if !onlyNames[name] {
-				continue
-			}
-		}
-		update := false
-		operation := "create"
-		if existingNames[name] {
-			if p.replace {
-				update = true
-			} else {
-				ignored++
-				continue
-			}
-		}
-
-		if update {
-			operation = "update"
-			_, err = cms.Update(cm)
+		if p.listConnectors {
+			fmt.Println(name)
 		} else {
-			_, err = cms.Create(cm)
-		}
-		if err != nil {
-			return fmt.Errorf("Failed to %s Connector %s due to %v", operation, name, err)
+			if len(onlyNames) > 0 {
+				if !onlyNames[name] {
+					continue
+				}
+			}
+			update := false
+			operation := "create"
+			if existingNames[name] {
+				if p.replace {
+					update = true
+				} else {
+					ignored++
+					continue
+				}
+			}
+
+			if update {
+				operation = "update"
+				_, err = cms.Update(cm)
+			} else {
+				_, err = cms.Create(cm)
+			}
+			if err != nil {
+				return fmt.Errorf("Failed to %s Connector %s due to %v", operation, name, err)
+			}
 		}
 		count++
+	}
+
+	if p.listConnectors {
+		return nil
 	}
 
 	ignoreMessage := ""

@@ -53,6 +53,10 @@ There's over [200 connectors](http://camel.apache.org/components.html) provided 
 
      funktion install amqp kafka timer
 
+To just get a feel for what connectors are available without installing them try:
+
+     funktion install --list
+
 ### Running the Operator
 
 You can run the funktion operator from the command line if you prefer:
