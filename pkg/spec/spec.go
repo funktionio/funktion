@@ -20,6 +20,11 @@ import (
 	"k8s.io/client-go/1.5/pkg/apis/extensions/v1beta1"
 )
 
+const (
+	EndpointKind = "endpoint"
+	FunctionKind = "function"
+)
+
 // Connector defines how to create a Deployment for a Subscription
 type Connector struct {
 	unversioned.TypeMeta `json:",inline"`
@@ -40,4 +45,21 @@ type ConnectorSpec struct {
 	DeploymentSpec *v1beta1.DeploymentSpec `json:"deploymentSpec"`
 
 	// TODO lets add a JSON Schema for how to configure the endpoints?
+}
+
+type FunkionConfig struct {
+	Rules []FunktionRule   `json:"rules"`
+}
+
+type FunktionRule struct {
+	Name    string   `json:"name,omitempty"`
+	Trigger string   `json:"trigger,omitempty"`
+	Trace   bool   `json:"trace,omitempty"`
+	Actions []FunktionAction   `json:"actions"`
+}
+
+type FunktionAction struct {
+	Kind string   `json:"kind"`
+	Name string   `json:"name,omitempty"`
+	URL  string   `json:"url,omitempty"`
 }

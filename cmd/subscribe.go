@@ -22,10 +22,14 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/ghodss/yaml"
+
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api"
 	"k8s.io/client-go/1.5/pkg/api/v1"
+
 	"github.com/fabric8io/funktion-operator/pkg/funktion"
+	"github.com/fabric8io/funktion-operator/pkg/spec"
 )
 
 type subscribeCmd struct {
@@ -33,6 +37,7 @@ type subscribeCmd struct {
 	connectorName    string
 	fromUrl          string
 	toUrl            string
+	trace            bool
 	namespace        string
 	kubeConfigPath   string
 	cmd              *cobra.Command
@@ -64,6 +69,7 @@ func newSubscribeCmd() *cobra.Command {
 	f.StringVarP(&p.subscriptionName, "name", "n", "", "name of the subscription to create")
 	f.StringVarP(&p.fromUrl, "from", "f", "", "the URL to consume from")
 	f.StringVarP(&p.toUrl, "to", "t", "", "the URL to invoke")
+	f.BoolVar(&p.trace, "trace", false, "enable tracing on the subscription")
 	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
 	return cmd
 }
@@ -98,7 +104,26 @@ func (p *subscribeCmd) run() error {
 	}
 
 
-	funktionYml := ""
+	funktionConfig := spec.FunkionConfig{
+		Rules: []spec.FunktionRule{
+			spec.FunktionRule{
+				Name: "default",
+				Trigger: fromUrl,
+				Trace: p.trace,
+				Actions: []spec.FunktionAction{
+					spec.FunktionAction{
+						Kind: spec.EndpointKind,
+						URL: toUrl,
+					},
+				},
+			},
+		},
+	}
+	funktionData, err := yaml.Marshal(&funktionConfig)
+	if err != nil {
+		return fmt.Errorf("Failed to marshal funktion %v due to marshalling error %v", &funktionConfig, err)
+	}
+	funktionYml := string(funktionData)
 	applicationProperties := "# put your spring boot configuration properties here..."
 
 	labels := map[string]string{
