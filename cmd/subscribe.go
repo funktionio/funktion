@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"net/url"
 	"strings"
+	"bytes"
 )
 
 type subscribeCmd struct {
@@ -65,7 +66,6 @@ func newSubscribeCmd() *cobra.Command {
 	return cmd
 }
 
-
 func (p *subscribeCmd) run() error {
 	var err error
 	name := p.subscriptionName
@@ -105,7 +105,7 @@ func (p *subscribeCmd) generateName() (string, error) {
 			if len(path) > 0 {
 				prefix = prefix + "-" + path
 			}
-			// TODO lets convert to safe values!
+			prefix = convertToSafeResourceName(prefix)
 		}
 	}
 	counter := 1
@@ -119,3 +119,23 @@ func (p *subscribeCmd) generateName() (string, error) {
 
 }
 
+// convertToSafeResourceName converts the given text into a usable kubernetes name
+// converting to lower case and removing any dodgy characters
+func convertToSafeResourceName(text string) string {
+	var buffer bytes.Buffer
+	lower := strings.ToLower(text)
+	lastCharValid := false;
+	for i := 0; i < len(lower); i++ {
+		ch := lower[i]
+		if (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') {
+			buffer.WriteString(string(ch))
+			lastCharValid = true
+		} else {
+			if lastCharValid {
+				buffer.WriteString("-")
+			}
+			lastCharValid = false
+		}
+	}
+	return buffer.String()
+}

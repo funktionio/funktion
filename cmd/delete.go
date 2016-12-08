@@ -32,7 +32,7 @@ type deleteCmd struct {
 	kind           string
 	namespace      string
 	name           string
-	all           bool
+	all            bool
 }
 
 func init() {
@@ -109,7 +109,6 @@ func (p *deleteCmd) run() error {
 	}
 	return nil
 }
-
 
 func (p *deleteCmd) deleteResource(cm *v1.ConfigMap) error {
 	kind := strings.ToLower(cm.Kind)
