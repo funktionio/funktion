@@ -17,78 +17,15 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/signal"
-	"sync"
-	"syscall"
 
-	"github.com/fabric8io/funktion-operator/pkg/funktion"
-
-	"github.com/go-kit/kit/log"
-	flag "github.com/spf13/pflag"
-	"k8s.io/client-go/1.5/tools/clientcmd"
-)
-
-var (
-	analyticsEnabled bool
+	"github.com/fabric8io/funktion-operator/cmd"
 )
 
 func Main() int {
-	logger := log.NewContext(log.NewLogfmtLogger(os.Stdout)).
-		With("ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller).
-		With("operator", "funktion")
-
-	flagset := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	flagset.StringVar(&loadingRules.ExplicitPath, "kubeconfig", "", "Path to the config file to use for CLI requests.")
-
-	overrides := &clientcmd.ConfigOverrides{}
-	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
-	clientcmd.BindOverrideFlags(overrides, flagset, overrideFlags)
-
-	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
-
-	flagset.Parse(os.Args[1:])
-
-	cfg, err := kubeConfig.ClientConfig()
-	if err != nil {
-		logger.Log("msg", "failed to create Kubernetes client config", "error", err)
-		return 1
+	if err := cmd.RootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
 	}
-
-	ko, err := funktion.New(cfg, logger)
-	if err != nil {
-		logger.Log("error", err)
-		return 1
-	}
-
-	stopc := make(chan struct{})
-	errc := make(chan error)
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		if err := ko.Run(stopc); err != nil {
-			errc <- err
-		}
-		wg.Done()
-	}()
-
-	term := make(chan os.Signal)
-	signal.Notify(term, os.Interrupt, syscall.SIGTERM)
-	select {
-	case <-term:
-		fmt.Fprintln(os.Stderr)
-		logger.Log("msg", "Received SIGTERM, exiting gracefully...")
-		close(stopc)
-		wg.Wait()
-	case err := <-errc:
-		logger.Log("msg", "Unexpected error received", "error", err)
-		close(stopc)
-		wg.Wait()
-		return 1
-	}
-
 	return 0
 }
 
