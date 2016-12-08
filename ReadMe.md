@@ -47,15 +47,26 @@ Or to remove all the Subscriptions or Connectors use `--all`
 
     funktion delete subscription --all
 
+#### Running the Operator
+
+You can run the funktion operator from the command line if you prefer:
+ 
+    funktion operate
+    
+Though ideally we'd run the `funktion application` inside kubernetes; via a helm chart, `kubectl apply` or the `Run...` button in the [fabric8 developer console](http://fabric8.io/guide/console.html)    
+
+
 #### Subscribing
 
 To create a new subscription for a connector try the following:
 
     funktion subscribe --from timer://bar?period=5000 --to http://foo/
 
-This will generate a new Subscription which will result in a new Deployment being created and one or more Pods should spin up.
- 
-You can then view the logs of a subscription via `kubectl`
+This will generate a new `Subscription` which will result in a new `Deployment` being created and one or more Pods should spin up.
+
+Note that you must be running the `Operator` as described in the section above; its the `Operator` which actually creates a `Deployment` for each `Subscription`.
+
+Once a pod has started for the `Deployment` you can then view the logs of a subscription via `kubectl`
  
     kubectl logs -f nameOfSubscription[TAB]
 
