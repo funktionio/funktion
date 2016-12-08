@@ -17,9 +17,14 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
+
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api/v1"
+
+	"github.com/fabric8io/funktion-operator/pkg/funktion"
+	"github.com/fabric8io/funktion-operator/pkg/spec"
 )
 
 type getCmd struct {
@@ -82,7 +87,7 @@ func (p *getCmd) run() error {
 	if len(name) == 0 {
 		p.printHeader()
 		for _, resource := range resources.Items {
-			p.printResource(&resource)
+			p.printResource(&resource, kind)
 		}
 
 	} else {
@@ -90,7 +95,7 @@ func (p *getCmd) run() error {
 		for _, resource := range resources.Items {
 			if resource.Name == name {
 				p.printHeader()
-				p.printResource(&resource)
+				p.printResource(&resource, kind)
 				found = true
 				break
 			}
@@ -102,11 +107,46 @@ func (p *getCmd) run() error {
 	return nil
 }
 
-
 func (p *getCmd) printHeader() {
 	fmt.Printf("NAME\n")
 }
 
-func (p *getCmd) printResource(cm *v1.ConfigMap) {
-	fmt.Printf("%s\n", cm.Name)
+func (p *getCmd) printResource(cm *v1.ConfigMap, kind string) {
+	switch kind {
+	case "subscription":
+		flowText := p.subscriptionFlowText(cm)
+		fmt.Printf("%-32s %s\n", cm.Name, flowText)
+	default:
+		fmt.Printf("%s\n", cm.Name)
+	}
+}
+
+
+func (p *getCmd) subscriptionFlowText(cm *v1.ConfigMap) string {
+	yamlText := cm.Data[funktion.FunktionYmlProperty]
+	if len(yamlText) == 0 {
+		return fmt.Sprintf("No `%s` property specified", funktion.FunktionYmlProperty)
+	}
+	fc := spec.FunkionConfig{}
+	err := yaml.Unmarshal([]byte(yamlText), &fc)
+	if err != nil {
+		return fmt.Sprintf("Failed to parse `%s` YAML: %v", funktion.FunktionYmlProperty, err)
+	}
+	if len(fc.Rules) == 0 {
+		return "No funktion rules"
+	}
+	rule := fc.Rules[0]
+	actions := rule.Actions
+	actionMessage := "No action"
+	if len(actions) > 0 {
+		action := actions[0]
+		switch action.Kind {
+		case spec.EndpointKind:
+			actionMessage = fmt.Sprintf("endpoint %s", action.URL)
+		case spec.FunctionKind:
+			actionMessage = fmt.Sprintf("function %s", action.Name)
+		}
+	}
+	return fmt.Sprintf("%s => %s", rule.Trigger, actionMessage)
+
 }
