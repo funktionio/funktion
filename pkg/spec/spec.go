@@ -52,10 +52,11 @@ type FunkionConfig struct {
 }
 
 type FunktionRule struct {
-	Name    string   `json:"name,omitempty"`
-	Trigger string   `json:"trigger,omitempty"`
-	Trace   bool   `json:"trace,omitempty"`
-	Actions []FunktionAction   `json:"actions"`
+	Name      string   `json:"name,omitempty"`
+	Trigger   string   `json:"trigger,omitempty"`
+	Trace     bool   `json:"trace,omitempty"`
+	LogResult bool   `json:"logResult,omitempty"`
+	Actions   []FunktionAction   `json:"actions"`
 }
 
 type FunktionAction struct {

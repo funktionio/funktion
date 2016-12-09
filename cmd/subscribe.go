@@ -38,6 +38,7 @@ type subscribeCmd struct {
 	fromUrl          string
 	toUrl            string
 	trace            bool
+	logResult        bool
 	namespace        string
 	kubeConfigPath   string
 	cmd              *cobra.Command
@@ -70,6 +71,7 @@ func newSubscribeCmd() *cobra.Command {
 	f.StringVarP(&p.fromUrl, "from", "f", "", "the URL to consume from")
 	f.StringVarP(&p.toUrl, "to", "t", "", "the URL to invoke")
 	f.BoolVar(&p.trace, "trace", false, "enable tracing on the subscription")
+	f.BoolVar(&p.logResult, "log-result", true, "whether to log the result of the subcription to the log of the subcription pod")
 	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
 	return cmd
 }
@@ -103,12 +105,12 @@ func (p *subscribeCmd) run() error {
 		return err
 	}
 
-
 	funktionConfig := spec.FunkionConfig{
 		Rules: []spec.FunktionRule{
 			spec.FunktionRule{
 				Name: "default",
 				Trigger: fromUrl,
+				LogResult: p.logResult,
 				Trace: p.trace,
 				Actions: []spec.FunktionAction{
 					spec.FunktionAction{

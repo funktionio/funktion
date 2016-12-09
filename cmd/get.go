@@ -144,7 +144,7 @@ func (p *getCmd) printResource(cm *v1.ConfigMap, kind string) {
 }
 
 func printSubscriptionRow(name string, pod string, flow string) {
-	fmt.Printf("%-32s %-8s %s\n", name, pod, flow)
+	fmt.Printf("%-32s %-9s %s\n", name, pod, flow)
 }
 
 func (p *getCmd) subscriptionFlowText(cm *v1.ConfigMap) string {

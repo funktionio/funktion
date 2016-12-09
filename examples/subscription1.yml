@@ -15,9 +15,7 @@ data:
     ---
     rules:
       - trigger: timer://foo?fixedRate=true&period=5000
-        trace: true
+        logResult: true
         actions:
         - kind: endpoint
           url: http://fabric8-forge/
-        - kind: endpoint
-          url: log:example
