@@ -28,6 +28,9 @@ const (
 	FunktionYmlProperty = "funktion.yml"
 	ApplicationPropertiesProperty = "application.properties"
 	ApplicationYmlProperty = "application.yml"
+
+
+	ConfigMapControllerAnnotation = "configmap.fabric8.io/update-on-change"
 )
 
 func makeDeployment(subscription *v1.ConfigMap, connector *v1.ConfigMap, old *v1beta1.Deployment) (*v1beta1.Deployment, error) {
@@ -66,6 +69,9 @@ func makeDeployment(subscription *v1.ConfigMap, connector *v1.ConfigMap, old *v1
 				deployment.Labels[k] = v
 			}
 		}
+	}
+	if len(deployment.Annotations[ConfigMapControllerAnnotation]) == 0 {
+		deployment.Annotations[ConfigMapControllerAnnotation] = subscription.Name
 	}
 
 	volumeName := "config"
