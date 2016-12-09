@@ -21,7 +21,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/client-go/1.5/kubernetes"
+	"k8s.io/client-go/1.5/pkg/api"
 	"k8s.io/client-go/1.5/pkg/api/v1"
+	"k8s.io/client-go/1.5/pkg/apis/extensions/v1beta1"
 
 	"github.com/fabric8io/funktion-operator/pkg/funktion"
 	"github.com/fabric8io/funktion-operator/pkg/spec"
@@ -35,6 +37,8 @@ type getCmd struct {
 	kind           string
 	namespace      string
 	name           string
+
+	deployments    map[string]*v1beta1.Deployment
 }
 
 func init() {
@@ -78,14 +82,28 @@ func (p *getCmd) run() error {
 	if err != nil {
 		return err
 	}
-	cms := p.kubeclient.ConfigMaps(p.namespace)
+	kubeclient := p.kubeclient
+	cms := kubeclient.ConfigMaps(p.namespace)
 	resources, err := cms.List(*listOpts)
 	if err != nil {
 		return err
 	}
+	if kind == subscriptionKind {
+		ds, err := kubeclient.Deployments(p.namespace).List(api.ListOptions{})
+		if err != nil {
+			return err
+		}
+		p.deployments = map[string]*v1beta1.Deployment{}
+		for _, item := range ds.Items {
+			// TODO lets assume the name of the Deployment is the name of the Subscription
+			// but we may want to use a label instead to link them?
+			name := item.Name
+			p.deployments[name] = &item
+		}
+	}
 	name := p.name
 	if len(name) == 0 {
-		p.printHeader()
+		p.printHeader(kind)
 		for _, resource := range resources.Items {
 			p.printResource(&resource, kind)
 		}
@@ -94,7 +112,7 @@ func (p *getCmd) run() error {
 		found := false
 		for _, resource := range resources.Items {
 			if resource.Name == name {
-				p.printHeader()
+				p.printHeader(kind)
 				p.printResource(&resource, kind)
 				found = true
 				break
@@ -107,20 +125,27 @@ func (p *getCmd) run() error {
 	return nil
 }
 
-func (p *getCmd) printHeader() {
-	fmt.Printf("NAME\n")
+func (p *getCmd) printHeader(kind string) {
+	switch kind {
+	case subscriptionKind:
+		printSubscriptionRow("NAME", "PODS", "FLOW")
+	default:
+		fmt.Printf("NAME\n")
+	}
 }
 
 func (p *getCmd) printResource(cm *v1.ConfigMap, kind string) {
 	switch kind {
-	case "subscription":
-		flowText := p.subscriptionFlowText(cm)
-		fmt.Printf("%-32s %s\n", cm.Name, flowText)
+	case subscriptionKind:
+		printSubscriptionRow(cm.Name, p.subscriptionPodText(cm), p.subscriptionFlowText(cm))
 	default:
 		fmt.Printf("%s\n", cm.Name)
 	}
 }
 
+func printSubscriptionRow(name string, pod string, flow string) {
+	fmt.Printf("%-32s %-8s %s\n", name, pod, flow)
+}
 
 func (p *getCmd) subscriptionFlowText(cm *v1.ConfigMap) string {
 	yamlText := cm.Data[funktion.FunktionYmlProperty]
@@ -142,11 +167,20 @@ func (p *getCmd) subscriptionFlowText(cm *v1.ConfigMap) string {
 		action := actions[0]
 		switch action.Kind {
 		case spec.EndpointKind:
-			actionMessage = fmt.Sprintf("endpoint %s", action.URL)
+			actionMessage = fmt.Sprintf("%s", action.URL)
 		case spec.FunctionKind:
 			actionMessage = fmt.Sprintf("function %s", action.Name)
 		}
 	}
 	return fmt.Sprintf("%s => %s", rule.Trigger, actionMessage)
+}
 
+func (p *getCmd) subscriptionPodText(cm *v1.ConfigMap) string {
+	name := cm.Name
+	deployment := p.deployments[name]
+	if deployment == nil {
+		return ""
+	}
+	var status = deployment.Status
+	return fmt.Sprintf("%d/%d", status.AvailableReplicas, status.Replicas)
 }

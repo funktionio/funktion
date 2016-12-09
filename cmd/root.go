@@ -24,6 +24,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	subscriptionKind = "subscription"
+	connectorKind = "connector"
+)
+
 var RootCmd = &cobra.Command{
 	Use:   "funktion",
 	Short: "funktion is a Function as a Service (or Lambda) style programming model for Kubenretes",
@@ -79,10 +84,10 @@ func listOptsForKind(kind string) (string, *api.ListOptions, error) {
 	switch kind {
 	case "s", "subscription", "subscriptions":
 		listOpts, err := funktion.CreateSubscriptionListOptions()
-		return "subscription", listOpts, err
+		return subscriptionKind, listOpts, err
 	case "c", "connector", "connectors":
 		listOpts, err := funktion.CreateConnectorListOptions()
-		return "connector", listOpts, err
+		return connectorKind, listOpts, err
 	default:
 		return "", nil, fmt.Errorf("Unknown kind `%s` when known kinds are (`connector`, `subscription`)", kind)
 	}
