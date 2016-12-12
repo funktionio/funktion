@@ -18,4 +18,4 @@ data:
         logResult: true
         actions:
         - kind: endpoint
-          url: http://fabric8-forge/
+          url: http://ip.jsontest.com/
