@@ -36,7 +36,7 @@ type subscribeCmd struct {
 	subscriptionName string
 	connectorName    string
 	fromUrl          string
-	toUrl            string
+	toUrls           []string
 	trace            bool
 	logResult        bool
 	namespace        string
@@ -69,7 +69,8 @@ func newSubscribeCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.StringVarP(&p.subscriptionName, "name", "n", "", "name of the subscription to create")
 	f.StringVarP(&p.fromUrl, "from", "f", "", "the URL to consume from")
-	f.StringVarP(&p.toUrl, "to", "t", "", "the URL to invoke")
+	f.StringVarP(&p.connectorName, "connector", "c", "", "the Connector name to use. If not specified uses the first URL scheme")
+	f.StringArrayVarP(&p.toUrls, "to", "t", []string{}, "the URL to invoke")
 	f.BoolVar(&p.trace, "trace", false, "enable tracing on the subscription")
 	f.BoolVar(&p.logResult, "log-result", true, "whether to log the result of the subcription to the log of the subcription pod")
 	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
@@ -92,10 +93,13 @@ func (p *subscribeCmd) run() error {
 		}
 	}
 	fromUrl := p.fromUrl
-	toUrl := p.toUrl
-	connectorName, err := urlScheme(fromUrl)
-	if err != nil {
-		return err
+	toUrl := p.toUrls
+	connectorName := p.connectorName
+	if len(connectorName) == 0 {
+		connectorName, err = urlScheme(fromUrl)
+		if err != nil {
+			return err
+		}
 	}
 	if len(connectorName) == 0 {
 		return fmt.Errorf("No scheme specified for from URL %s", fromUrl)
@@ -105,6 +109,13 @@ func (p *subscribeCmd) run() error {
 		return err
 	}
 
+	actions := []spec.FunktionAction{}
+	for _, toUrl := range p.toUrls {
+		actions = append(actions, spec.FunktionAction{
+			Kind: spec.EndpointKind,
+			URL: toUrl,
+		})
+	}
 	funktionConfig := spec.FunkionConfig{
 		Rules: []spec.FunktionRule{
 			spec.FunktionRule{
@@ -112,12 +123,7 @@ func (p *subscribeCmd) run() error {
 				Trigger: fromUrl,
 				LogResult: p.logResult,
 				Trace: p.trace,
-				Actions: []spec.FunktionAction{
-					spec.FunktionAction{
-						Kind: spec.EndpointKind,
-						URL: toUrl,
-					},
-				},
+				Actions: actions,
 			},
 		},
 	}
