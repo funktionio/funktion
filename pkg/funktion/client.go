@@ -31,7 +31,8 @@ const (
 
 	ConnectorKind = "Connector"
 	SubscriptionKind = "Subscription"
-
+	FunctionKind = "Function"
+	DeploymentKind = "Deployment"
 
 	resyncPeriod = 30 * time.Second
 )

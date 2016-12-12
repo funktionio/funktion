@@ -1,8 +1,11 @@
-hash: 1ebc6179fcaba2fb27277916751f563cc6bb300729112a4225957c10f4b19a59
-updated: 2016-12-07T16:29:52.754313441Z
+hash: cbb805e86c66300f1bf073776d6464c8e2bcba8bde2343d888833e3384d7c7fe
+updated: 2016-12-12T15:36:05.856138344Z
 imports:
-- name: github.com/aokoli/goutils
-  version: 9c37978a95bd5c709a15883b6242714ea6709e64
+- name: cloud.google.com/go
+  version: c116c7972ec94f148459a304d07a67ecbc770d4b
+  subpackages:
+  - compute/metadata
+  - internal
 - name: github.com/blang/semver
   version: 3a37c301dda64cbe17f16f661b4c976803c0e2d2
 - name: github.com/coreos/go-oidc
@@ -24,12 +27,12 @@ imports:
   subpackages:
   - spew
 - name: github.com/docker/distribution
-  version: 15dc1296affa926b873ce12cde1890a387a046f2
+  version: 923c7763b0e49cbb9f34da368108e8dde34e009d
   subpackages:
   - reference
   - digest
 - name: github.com/emicklei/go-restful
-  version: e9d6cfe95e4be7e9f85e79dab93bebb14a517f20
+  version: 09691a3b6378b740595c1002f40c34dd5f218a22
   subpackages:
   - swagger
   - log
@@ -59,11 +62,13 @@ imports:
 - name: github.com/golang/glog
   version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 - name: github.com/golang/protobuf
-  version: 8d92cf5fc15a4382f8964b08e1f42a75c0591aa3
+  version: 8ee79997227bf9b34611aee7946ae64735e6fd93
   subpackages:
   - proto
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
+- name: github.com/googleapis/gax-go
+  version: da06d194a00e19ce00d9011a13931c3f6f6887c7
 - name: github.com/howeyc/gopass
   version: f5387c492211eb133053880d23dfae62aa14123d
 - name: github.com/imdario/mergo
@@ -79,23 +84,19 @@ imports:
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
 - name: github.com/mailru/easyjson
-  version: 304d3dc6fae850e62b7db2aee661d9d7b628cef0
+  version: 9d6630dc8c577b56cb9687a9cf9e8578aca7298a
   subpackages:
   - jlexer
   - jwriter
   - buffer
-- name: github.com/Masterminds/sprig
-  version: 1e60e4ce482a1e2c7b9c9be667535ef152e04300
 - name: github.com/mitchellh/mapstructure
-  version: 5a0325d7fafaac12dda6e7fb8bd222ec1b69875e
+  version: bfdb1a85537d60bc7e954e600c250219ea497417
 - name: github.com/pborman/uuid
   version: 5007efa264d92316c43112bc573e754bc889b7b1
 - name: github.com/PuerkitoBio/purell
   version: 0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4
 - name: github.com/PuerkitoBio/urlesc
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
-- name: github.com/satori/go.uuid
-  version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/spf13/cobra
   version: 9495bc009a56819bdb0ddbc1a373e29c140bc674
 - name: github.com/spf13/pflag
@@ -105,19 +106,22 @@ imports:
   subpackages:
   - codec
 - name: golang.org/x/crypto
-  version: 3f77d695175f990a2967385c493939f380ee40a3
+  version: b07d8c96772f426812d3fc5530710ec1f3b205e7
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 4876518f9e71663000c348837735820161a42df7
+  version: b1a2d6e8c8b5fc8f601ead62536f02a8e1b6217d
   subpackages:
   - context
   - http2
   - http2/hpack
   - idna
   - lex/httplex
+  - context/ctxhttp
+  - trace
+  - internal/timeseries
 - name: golang.org/x/oauth2
-  version: 045497edb6234273d67dbc25da3f2ddbc4c4cacf
+  version: da3ce8d62a7f77aadfda06cb82bd604d6469c645
   subpackages:
   - google
   - internal
@@ -128,30 +132,36 @@ imports:
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: 5c6cf4f9a2357d38515014cea8c488ed22bdab90
+  version: 47a200a05c8b3fd1b698571caecbb68beb2611ec
   subpackages:
   - unicode/norm
   - width
   - transform
 - name: google.golang.org/appengine
-  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
+  version: ca59ef35f409df61fa4a5f8290ff289b37eccfb8
   subpackages:
+  - urlfetch
   - internal
+  - internal/urlfetch
   - internal/app_identity
+  - internal/modules
   - internal/base
   - internal/datastore
   - internal/log
-  - internal/modules
   - internal/remote_api
-  - urlfetch
-  - internal/urlfetch
-- name: google.golang.org/cloud
-  version: 975617b05ea8a58727e6c1a06b6161ff4185a9f2
+- name: google.golang.org/grpc
+  version: 8712952b7d646dbbbc6fb73a782174f3115060f3
   subpackages:
-  - compute/metadata
+  - codes
+  - credentials
+  - grpclog
   - internal
-  - internal/opts
-  - storage
+  - metadata
+  - naming
+  - stats
+  - tap
+  - transport
+  - peer
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
@@ -165,8 +175,8 @@ imports:
   - 1.5/pkg/api
   - 1.5/pkg/api/v1
   - 1.5/pkg/apis/extensions/v1beta1
-  - 1.5/pkg/labels
   - 1.5/pkg/runtime
+  - 1.5/pkg/labels
   - 1.5/pkg/util/intstr
   - 1.5/pkg/util/runtime
   - 1.5/pkg/util/wait
@@ -174,12 +184,6 @@ imports:
   - 1.5/tools/cache
   - 1.5/pkg/api/errors
   - 1.5/pkg/api/unversioned
-  - 1.5/pkg/util/errors
-  - 1.5/pkg/util/homedir
-  - 1.5/pkg/util/validation
-  - 1.5/tools/auth
-  - 1.5/tools/clientcmd/api
-  - 1.5/tools/clientcmd/api/latest
   - 1.5/discovery
   - 1.5/kubernetes/typed/apps/v1alpha1
   - 1.5/kubernetes/typed/authentication/v1beta1
@@ -227,7 +231,13 @@ imports:
   - 1.5/pkg/apis/autoscaling
   - 1.5/pkg/apis/batch
   - 1.5/pkg/conversion/queryparams
+  - 1.5/pkg/util/errors
   - 1.5/pkg/util/json
+  - 1.5/pkg/util/homedir
+  - 1.5/pkg/util/validation
+  - 1.5/tools/auth
+  - 1.5/tools/clientcmd/api
+  - 1.5/tools/clientcmd/api/latest
   - 1.5/pkg/genericapiserver/openapi/common
   - 1.5/pkg/util/net
   - 1.5/pkg/api/validation/path
@@ -240,9 +250,6 @@ imports:
   - 1.5/pkg/apis/certificates
   - 1.5/pkg/apis/policy
   - 1.5/pkg/util/clock
-  - 1.5/pkg/runtime/serializer/json
-  - 1.5/pkg/runtime/serializer/versioning
-  - 1.5/tools/clientcmd/api/v1
   - 1.5/pkg/apis/apps/v1alpha1
   - 1.5/pkg/apis/authorization/v1beta1
   - 1.5/pkg/apis/autoscaling/v1
@@ -263,8 +270,11 @@ imports:
   - 1.5/plugin/pkg/client/auth/gcp
   - 1.5/plugin/pkg/client/auth/oidc
   - 1.5/pkg/third_party/forked/golang/reflect
+  - 1.5/pkg/runtime/serializer/json
   - 1.5/pkg/runtime/serializer/protobuf
   - 1.5/pkg/runtime/serializer/recognizer
+  - 1.5/pkg/runtime/serializer/versioning
+  - 1.5/tools/clientcmd/api/v1
   - 1.5/pkg/util/framer
   - 1.5/pkg/util/yaml
 devImports: []

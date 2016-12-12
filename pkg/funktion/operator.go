@@ -39,11 +39,17 @@ type Operator struct {
 	//funktionClient *rest.RESTClient
 	logger          log.Logger
 
-	connectorInf cache.SharedIndexInformer
+	connectorInf    cache.SharedIndexInformer
 	subscriptionInf cache.SharedIndexInformer
 	deploymentInf   cache.SharedIndexInformer
 
 	queue           *queue.Queue
+}
+
+// ResourceKey represents a kind and a key
+type ResourceKey struct {
+	Kind string
+	Key string
 }
 
 // New creates a new controller.
@@ -151,7 +157,7 @@ func (c *Operator) handleAddConnector(obj interface{}) {
 
 	analytics.ConnectorCreated()
 	c.logger.Log("msg", "Connector added", "key", key)
-	//c.enqueue(key)
+	c.enqueue(key, ConnectorKind)
 }
 
 func (c *Operator) handleDeleteConnector(obj interface{}) {
@@ -162,7 +168,7 @@ func (c *Operator) handleDeleteConnector(obj interface{}) {
 
 	analytics.ConnectorDeleted()
 	c.logger.Log("msg", "Connector deleted", "key", key)
-	//c.enqueue(key)
+	c.enqueue(key, ConnectorKind)
 }
 
 func (c *Operator) handleUpdateConnector(old, cur interface{}) {
@@ -172,7 +178,7 @@ func (c *Operator) handleUpdateConnector(old, cur interface{}) {
 	}
 
 	c.logger.Log("msg", "Connector updated", "key", key)
-	//c.enqueue(key)
+	c.enqueue(key, ConnectorKind)
 }
 
 func (c *Operator) handleAddSubscription(obj interface{}) {
@@ -183,7 +189,7 @@ func (c *Operator) handleAddSubscription(obj interface{}) {
 
 	analytics.SubscriptionCreated()
 	c.logger.Log("msg", "Subscription added", "key", key)
-	c.enqueue(key)
+	c.enqueue(key, SubscriptionKind)
 }
 
 func (c *Operator) handleDeleteSubscription(obj interface{}) {
@@ -194,7 +200,7 @@ func (c *Operator) handleDeleteSubscription(obj interface{}) {
 
 	analytics.SubscriptionDeleted()
 	c.logger.Log("msg", "Subscription deleted", "key", key)
-	c.enqueue(key)
+	c.enqueue(key, SubscriptionKind)
 }
 
 func (c *Operator) handleUpdateSubscription(old, cur interface{}) {
@@ -204,12 +210,12 @@ func (c *Operator) handleUpdateSubscription(old, cur interface{}) {
 	}
 
 	c.logger.Log("msg", "Subscription updated", "key", key)
-	c.enqueue(key)
+	c.enqueue(key, SubscriptionKind)
 }
 
 // enqueue adds a key to the queue. If obj is a key already it gets added directly.
 // Otherwise, the key is extracted via keyFunc.
-func (c *Operator) enqueue(obj interface{}) {
+func (c *Operator) enqueue(obj interface{}, kind string) {
 	if obj == nil {
 		return
 	}
@@ -222,7 +228,10 @@ func (c *Operator) enqueue(obj interface{}) {
 		}
 	}
 
-	c.queue.Add(key)
+	c.queue.Add(&ResourceKey{
+		Key: key,
+		Kind: kind,
+	})
 }
 
 // worker runs a worker thread that just dequeues items, processes them, and marks them done.
@@ -233,7 +242,7 @@ func (c *Operator) worker() {
 		if quit {
 			return
 		}
-		if err := c.sync(key.(string)); err != nil {
+		if err := c.sync(key.(*ResourceKey)); err != nil {
 			utilruntime.HandleError(fmt.Errorf("reconciliation failed, re-enqueueing: %s", err))
 			// We only mark the item as done after waiting. In the meantime
 			// other items can be processed but the same item won't be processed again.
@@ -269,13 +278,13 @@ func (c *Operator) subscriptionForDeployment(obj interface{}) *v1.ConfigMap {
 
 func (c *Operator) handleDeleteDeployment(obj interface{}) {
 	if d := c.subscriptionForDeployment(obj); d != nil {
-		c.enqueue(d)
+		c.enqueue(d, DeploymentKind)
 	}
 }
 
 func (c *Operator) handleAddDeployment(obj interface{}) {
 	if d := c.subscriptionForDeployment(obj); d != nil {
-		c.enqueue(d)
+		c.enqueue(d, DeploymentKind)
 	}
 }
 
@@ -293,13 +302,31 @@ func (c *Operator) handleUpdateDeployment(oldo, curo interface{}) {
 
 	// Wake up Funktion resource the deployment belongs to.
 	if k := c.subscriptionForDeployment(cur); k != nil {
-		c.enqueue(k)
+		c.enqueue(k ,DeploymentKind)
 	}
 }
 
-func (c *Operator) sync(key string) error {
-	c.logger.Log("msg", "reconcile funktion", "key", key)
+func (c *Operator) sync(resourceKey *ResourceKey) error {
+	kind := resourceKey.Kind
+	key := resourceKey.Key
+	c.logger.Log("msg", "reconcile funktion", "key", key, "kind", kind)
 
+	switch kind {
+	case SubscriptionKind:
+		return c.syncSubscription(key)
+	case ConnectorKind:
+		return nil
+	case DeploymentKind:
+		return nil
+	case FunctionKind:
+		return nil
+	default:
+		c.logger.Log("msg", "Unknown kind funktion", "key", key, "kind", kind)
+		return fmt.Errorf("Unknown kind %s for key %s", kind, key)
+	}
+}
+
+func (c *Operator) syncSubscription(key string) error {
 	obj, exists, err := c.subscriptionInf.GetIndexer().GetByKey(key)
 	if err != nil {
 		return err
@@ -382,7 +409,7 @@ func (c *Operator) destroySubscription(key string) error {
 
 	deploymentClient := c.kclient.Extensions().Deployments(deployment.Namespace)
 	currentGeneration := deployment.Generation
-	if err := wait.PollInfinite(1*time.Second, func() (bool, error) {
+	if err := wait.PollInfinite(1 * time.Second, func() (bool, error) {
 		updatedDeployment, err := deploymentClient.Get(deployment.Name)
 		if err != nil {
 			return false, err
