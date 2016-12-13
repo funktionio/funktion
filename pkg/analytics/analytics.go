@@ -21,13 +21,13 @@ import (
 )
 
 const (
-	id       = "UA-85532162-2"
+	id = "UA-85532162-2"
 	category = "funktion-operator"
 )
 
 var (
 	client *ga.Client
-	once   sync.Once
+	once sync.Once
 )
 
 func send(e *ga.Event) {
@@ -59,4 +59,20 @@ func ConnectorCreated() {
 
 func ConnectorDeleted() {
 	send(ga.NewEvent(category, "connector_deleted"))
+}
+
+func FunctionCreated() {
+	send(ga.NewEvent(category, "function_created"))
+}
+
+func FunctionDeleted() {
+	send(ga.NewEvent(category, "function_deleted"))
+}
+
+func RuntimeCreated() {
+	send(ga.NewEvent(category, "runtime_created"))
+}
+
+func RuntimeDeleted() {
+	send(ga.NewEvent(category, "runtime_deleted"))
 }

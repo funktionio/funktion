@@ -26,13 +26,31 @@ import (
 )
 
 const (
+	// KindLabel is the label key used on ConfigMaps to indicate the kind of resource
 	KindLabel = "funktion.fabric8.io/kind"
+
+	// Subscription
+
+	// ConnectorLabel is the label key used on a ConfigMap to refer to a Connector
 	ConnectorLabel = "connector"
 
+	// Function
+
+	// RuntimeLabel is the label key used on a ConfigMap to refer to a Runtime
+	RuntimeLabel = "runtime"
+
+	// ConnectorKind is the value of a Connector fo the KindLabel
 	ConnectorKind = "Connector"
+	// SubscriptionKind is the value of a Subscription fo the KindLabel
 	SubscriptionKind = "Subscription"
+	// RuntimeKind is the value of a Runtime fo the KindLabel
+	RuntimeKind = "Runtime"
+	// FunctionKind is the value of a Function fo the KindLabel
 	FunctionKind = "Function"
+	// DeploymentKind is the value of a Deployment fo the KindLabel
 	DeploymentKind = "Deployment"
+	// ServiceKind is the value of a ConneServicector fo the KindLabel
+	ServiceKind = "Service"
 
 	resyncPeriod = 30 * time.Second
 )
@@ -51,20 +69,43 @@ func NewConfigMapListWatch(client *kubernetes.Clientset, listOpts api.ListOption
 	}
 }
 
+// NewServiceListWatch creates a watch on services
+func NewServiceListWatch(client *kubernetes.Clientset) *cache.ListWatch {
+	listOpts := api.ListOptions{}
+	services := client.Services(api.NamespaceAll)
+	return &cache.ListWatch{
+		ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+			return services.List(listOpts)
+		},
+		WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+			return services.Watch(listOpts)
+		},
+	}
+}
+
 // CreateSubscriptionListOptions returns the default selector for Subscription resources
 func CreateSubscriptionListOptions() (*api.ListOptions, error) {
-	selector, err := labels.Parse(KindLabel + "=" + SubscriptionKind)
-	if err != nil {
-		return nil, err
-	}
-	listOpts := api.ListOptions{
-		LabelSelector: selector,
-	}
-	return &listOpts, nil
+	return createKindListOptions(SubscriptionKind)
 }
+
 // CreateConnectorListOptions returns the default selector for Connector resources
 func CreateConnectorListOptions() (*api.ListOptions, error) {
-	selector, err := labels.Parse(KindLabel + "=" + ConnectorKind)
+	return createKindListOptions(ConnectorKind)
+}
+
+// CreateRuntimeListOptions returns the default selector for Runtime resources
+func CreateRuntimeListOptions() (*api.ListOptions, error) {
+	return createKindListOptions(RuntimeKind)
+}
+
+// CreateFunctionListOptions returns the default selector for Function resources
+func CreateFunctionListOptions() (*api.ListOptions, error) {
+	return createKindListOptions(FunctionKind)
+}
+
+// CreateKindListOptions returns the selector for a given kind of resources
+func createKindListOptions(kind string) (*api.ListOptions, error) {
+	selector, err := labels.Parse(KindLabel + "=" + kind)
 	if err != nil {
 		return nil, err
 	}

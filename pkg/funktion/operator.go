@@ -21,35 +21,39 @@ import (
 	"github.com/fabric8io/funktion-operator/pkg/analytics"
 	"github.com/fabric8io/funktion-operator/pkg/queue"
 
+	"strings"
+
 	"github.com/go-kit/kit/log"
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api"
 	"k8s.io/client-go/1.5/pkg/api/v1"
-	extensionsobj "k8s.io/client-go/1.5/pkg/apis/extensions/v1beta1"
+	"k8s.io/client-go/1.5/pkg/apis/extensions/v1beta1"
 	utilruntime "k8s.io/client-go/1.5/pkg/util/runtime"
 	"k8s.io/client-go/1.5/pkg/util/wait"
 	"k8s.io/client-go/1.5/rest"
 	"k8s.io/client-go/1.5/tools/cache"
-	"strings"
 )
 
 // Operator manages Funktion Deployments
 type Operator struct {
-	kclient         *kubernetes.Clientset
+	kclient *kubernetes.Clientset
 	//funktionClient *rest.RESTClient
-	logger          log.Logger
+	logger log.Logger
 
 	connectorInf    cache.SharedIndexInformer
 	subscriptionInf cache.SharedIndexInformer
+	runtimeInf      cache.SharedIndexInformer
+	functionInf     cache.SharedIndexInformer
 	deploymentInf   cache.SharedIndexInformer
+	serviceInf      cache.SharedIndexInformer
 
-	queue           *queue.Queue
+	queue *queue.Queue
 }
 
 // ResourceKey represents a kind and a key
 type ResourceKey struct {
 	Kind string
-	Key string
+	Key  string
 }
 
 // New creates a new controller.
@@ -61,9 +65,9 @@ func New(cfg *rest.Config, logger log.Logger) (*Operator, error) {
 	}
 
 	c := &Operator{
-		kclient:        client,
-		logger:         logger,
-		queue:          queue.New(),
+		kclient: client,
+		logger:  logger,
+		queue:   queue.New(),
 	}
 
 	logger.Log("msg", "creating ListOptions")
@@ -72,6 +76,14 @@ func New(cfg *rest.Config, logger log.Logger) (*Operator, error) {
 		return nil, err
 	}
 	connectorListOpts, err := CreateConnectorListOptions()
+	if err != nil {
+		return nil, err
+	}
+	runtimeListOpts, err := CreateRuntimeListOptions()
+	if err != nil {
+		return nil, err
+	}
+	functionListOpts, err := CreateFunctionListOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +100,27 @@ func New(cfg *rest.Config, logger log.Logger) (*Operator, error) {
 		resyncPeriod,
 		cache.Indexers{},
 	)
+	c.runtimeInf = cache.NewSharedIndexInformer(
+		NewConfigMapListWatch(c.kclient, *runtimeListOpts),
+		&v1.ConfigMap{},
+		resyncPeriod,
+		cache.Indexers{},
+	)
+	c.functionInf = cache.NewSharedIndexInformer(
+		NewConfigMapListWatch(c.kclient, *functionListOpts),
+		&v1.ConfigMap{},
+		resyncPeriod,
+		cache.Indexers{},
+	)
 	c.deploymentInf = cache.NewSharedIndexInformer(
 		cache.NewListWatchFromClient(c.kclient.Extensions().GetRESTClient(), "deployments", api.NamespaceAll, nil),
-		&extensionsobj.Deployment{},
+		&v1beta1.Deployment{},
+		resyncPeriod,
+		cache.Indexers{},
+	)
+	c.serviceInf = cache.NewSharedIndexInformer(
+		NewServiceListWatch(c.kclient),
+		&v1.Service{},
 		resyncPeriod,
 		cache.Indexers{},
 	)
@@ -105,19 +135,38 @@ func New(cfg *rest.Config, logger log.Logger) (*Operator, error) {
 		DeleteFunc: c.handleDeleteSubscription,
 		UpdateFunc: c.handleUpdateSubscription,
 	})
+	c.runtimeInf.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.handleAddRuntime,
+		DeleteFunc: c.handleDeleteRuntime,
+		UpdateFunc: c.handleUpdateRuntime,
+	})
+	c.functionInf.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.handleAddFunction,
+		DeleteFunc: c.handleDeleteFunction,
+		UpdateFunc: c.handleUpdateFunction,
+	})
 	c.deploymentInf.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		// TODO only look at Funktion related Deployments?
 		AddFunc: func(d interface{}) {
-			c.logger.Log("msg", "addDeployment", "trigger", "depl add")
 			c.handleAddDeployment(d)
 		},
 		DeleteFunc: func(d interface{}) {
-			c.logger.Log("msg", "deleteDeployment", "trigger", "depl delete")
 			c.handleDeleteDeployment(d)
 		},
 		UpdateFunc: func(old, cur interface{}) {
-			c.logger.Log("msg", "updateDeployment", "trigger", "depl update")
 			c.handleUpdateDeployment(old, cur)
+		},
+	})
+	c.serviceInf.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		// TODO only look at Funktion related Services?
+		AddFunc: func(d interface{}) {
+			c.handleAddService(d)
+		},
+		DeleteFunc: func(d interface{}) {
+			c.handleDeleteService(d)
+		},
+		UpdateFunc: func(old, cur interface{}) {
+			c.handleUpdateService(old, cur)
 		},
 	})
 
@@ -134,7 +183,10 @@ func (c *Operator) Run(stopc <-chan struct{}) error {
 
 	go c.connectorInf.Run(stopc)
 	go c.subscriptionInf.Run(stopc)
+	go c.runtimeInf.Run(stopc)
+	go c.functionInf.Run(stopc)
 	go c.deploymentInf.Run(stopc)
+	go c.serviceInf.Run(stopc)
 
 	<-stopc
 	return nil
@@ -147,6 +199,70 @@ func (c *Operator) keyFunc(obj interface{}) (string, bool) {
 		return k, false
 	}
 	return k, true
+}
+
+func (c *Operator) handleAddRuntime(obj interface{}) {
+	key, ok := c.keyFunc(obj)
+	if !ok {
+		return
+	}
+
+	analytics.RuntimeCreated()
+	c.logger.Log("msg", "Runtime added", "key", key)
+	c.enqueue(key, RuntimeKind)
+}
+
+func (c *Operator) handleDeleteRuntime(obj interface{}) {
+	key, ok := c.keyFunc(obj)
+	if !ok {
+		return
+	}
+
+	analytics.RuntimeDeleted()
+	c.logger.Log("msg", "Runtime deleted", "key", key)
+	c.enqueue(key, RuntimeKind)
+}
+
+func (c *Operator) handleUpdateRuntime(old, cur interface{}) {
+	key, ok := c.keyFunc(cur)
+	if !ok {
+		return
+	}
+
+	c.logger.Log("msg", "Runtime updated", "key", key)
+	c.enqueue(key, RuntimeKind)
+}
+
+func (c *Operator) handleAddFunction(obj interface{}) {
+	key, ok := c.keyFunc(obj)
+	if !ok {
+		return
+	}
+
+	analytics.FunctionCreated()
+	c.logger.Log("msg", "Function added", "key", key)
+	c.enqueue(key, FunctionKind)
+}
+
+func (c *Operator) handleDeleteFunction(obj interface{}) {
+	key, ok := c.keyFunc(obj)
+	if !ok {
+		return
+	}
+
+	analytics.FunctionDeleted()
+	c.logger.Log("msg", "Function deleted", "key", key)
+	c.enqueue(key, FunctionKind)
+}
+
+func (c *Operator) handleUpdateFunction(old, cur interface{}) {
+	key, ok := c.keyFunc(cur)
+	if !ok {
+		return
+	}
+
+	c.logger.Log("msg", "Function updated", "key", key)
+	c.enqueue(key, FunctionKind)
 }
 
 func (c *Operator) handleAddConnector(obj interface{}) {
@@ -213,6 +329,65 @@ func (c *Operator) handleUpdateSubscription(old, cur interface{}) {
 	c.enqueue(key, SubscriptionKind)
 }
 
+func (c *Operator) handleDeleteDeployment(obj interface{}) {
+	if d := c.subscriptionForDeployment(obj); d != nil {
+		c.enqueue(d, DeploymentKind)
+	}
+}
+
+func (c *Operator) handleAddDeployment(obj interface{}) {
+	if d := c.subscriptionForDeployment(obj); d != nil {
+		c.enqueue(d, DeploymentKind)
+	}
+}
+
+func (c *Operator) handleUpdateDeployment(oldo, curo interface{}) {
+	old := oldo.(*v1beta1.Deployment)
+	cur := curo.(*v1beta1.Deployment)
+
+	//c.logger.Log("msg", "update handler", "old", old.ResourceVersion, "cur", cur.ResourceVersion, "kind", "Service"))
+
+	// Periodic resync may resend the deployment without changes in-between.
+	// Also breaks loops created by updating the resource ourselves.
+	if old.ResourceVersion == cur.ResourceVersion {
+		return
+	}
+
+	// Wake up Subscription resource the deployment belongs to.
+	if k := c.subscriptionForDeployment(cur); k != nil {
+		c.enqueue(k, DeploymentKind)
+	}
+}
+func (c *Operator) handleDeleteService(obj interface{}) {
+	if d := c.functionForService(obj); d != nil {
+		c.enqueue(d, ServiceKind)
+	}
+}
+
+func (c *Operator) handleAddService(obj interface{}) {
+	if d := c.functionForService(obj); d != nil {
+		c.enqueue(d, ServiceKind)
+	}
+}
+
+func (c *Operator) handleUpdateService(oldo, curo interface{}) {
+	old := oldo.(*v1.Service)
+	cur := curo.(*v1.Service)
+
+	//c.logger.Log("msg", "update handler", "old", old.ResourceVersion, "cur", cur.ResourceVersion, "kind", "Service")
+
+	// Periodic resync may resend the service without changes in-between.
+	// Also breaks loops created by updating the resource ourselves.
+	if old.ResourceVersion == cur.ResourceVersion {
+		return
+	}
+
+	// Wake up Funktion resource the service belongs to.
+	if k := c.functionForService(cur); k != nil {
+		c.enqueue(k, ServiceKind)
+	}
+}
+
 // enqueue adds a key to the queue. If obj is a key already it gets added directly.
 // Otherwise, the key is extracted via keyFunc.
 func (c *Operator) enqueue(obj interface{}, kind string) {
@@ -229,7 +404,7 @@ func (c *Operator) enqueue(obj interface{}, kind string) {
 	}
 
 	c.queue.Add(&ResourceKey{
-		Key: key,
+		Key:  key,
 		Kind: kind,
 	})
 }
@@ -267,7 +442,7 @@ func (c *Operator) subscriptionForDeployment(obj interface{}) *v1.ConfigMap {
 	// Namespace/Name are one-to-one so the key will find the respective Funktion resource.
 	k, exists, err := c.subscriptionInf.GetStore().GetByKey(key)
 	if err != nil {
-		c.logger.Log("msg", "Funktion lookup failed", "err", err)
+		c.logger.Log("msg", "Subscription lookup failed", "err", err)
 		return nil
 	}
 	if !exists {
@@ -276,34 +451,21 @@ func (c *Operator) subscriptionForDeployment(obj interface{}) *v1.ConfigMap {
 	return k.(*v1.ConfigMap)
 }
 
-func (c *Operator) handleDeleteDeployment(obj interface{}) {
-	if d := c.subscriptionForDeployment(obj); d != nil {
-		c.enqueue(d, DeploymentKind)
+func (c *Operator) functionForService(obj interface{}) *v1.ConfigMap {
+	key, ok := c.keyFunc(obj)
+	if !ok {
+		return nil
 	}
-}
-
-func (c *Operator) handleAddDeployment(obj interface{}) {
-	if d := c.subscriptionForDeployment(obj); d != nil {
-		c.enqueue(d, DeploymentKind)
+	// Namespace/Name are one-to-one so the key will find the respective Funktion resource.
+	k, exists, err := c.functionInf.GetStore().GetByKey(key)
+	if err != nil {
+		c.logger.Log("msg", "Function lookup failed", "err", err)
+		return nil
 	}
-}
-
-func (c *Operator) handleUpdateDeployment(oldo, curo interface{}) {
-	old := oldo.(*extensionsobj.Deployment)
-	cur := curo.(*extensionsobj.Deployment)
-
-	c.logger.Log("msg", "update handler", "old", old.ResourceVersion, "cur", cur.ResourceVersion)
-
-	// Periodic resync may resend the deployment without changes in-between.
-	// Also breaks loops created by updating the resource ourselves.
-	if old.ResourceVersion == cur.ResourceVersion {
-		return
+	if !exists {
+		return nil
 	}
-
-	// Wake up Funktion resource the deployment belongs to.
-	if k := c.subscriptionForDeployment(cur); k != nil {
-		c.enqueue(k ,DeploymentKind)
-	}
+	return k.(*v1.ConfigMap)
 }
 
 func (c *Operator) sync(resourceKey *ResourceKey) error {
@@ -316,9 +478,13 @@ func (c *Operator) sync(resourceKey *ResourceKey) error {
 		return c.syncSubscription(key)
 	case ConnectorKind:
 		return nil
-	case DeploymentKind:
+	case RuntimeKind:
 		return nil
 	case FunctionKind:
+		return c.syncFunction(key)
+	case DeploymentKind:
+		return nil
+	case ServiceKind:
 		return nil
 	default:
 		c.logger.Log("msg", "Unknown kind funktion", "key", key, "kind", kind)
@@ -332,7 +498,7 @@ func (c *Operator) syncSubscription(key string) error {
 		return err
 	}
 	if !exists {
-		return c.destroySubscription(key)
+		return c.destroyDeployment(key)
 	}
 	subscription := obj.(*v1.ConfigMap)
 
@@ -349,7 +515,7 @@ func (c *Operator) syncSubscription(key string) error {
 	if err != nil {
 		return err
 	}
-	if (!exists) {
+	if !exists {
 		return fmt.Errorf("Connector %s does not exist for Subscription %s/%s current connector keys are %v", connectorKey, subscription.Namespace, subscription.Name, c.connectorInf.GetIndexer().ListKeys())
 	}
 	connector := obj.(*v1.ConfigMap)
@@ -364,7 +530,7 @@ func (c *Operator) syncSubscription(key string) error {
 	}
 
 	if !exists {
-		d, err := makeDeployment(subscription, connector, nil)
+		d, err := makeSubscriptionDeployment(subscription, connector, nil)
 		if err != nil {
 			return fmt.Errorf("make deployment: %s", err)
 		}
@@ -373,7 +539,7 @@ func (c *Operator) syncSubscription(key string) error {
 		}
 		return nil
 	}
-	d, err := makeDeployment(subscription, connector, obj.(*extensionsobj.Deployment))
+	d, err := makeSubscriptionDeployment(subscription, connector, obj.(*v1beta1.Deployment))
 	if err != nil {
 		return fmt.Errorf("update deployment: %s", err)
 	}
@@ -383,7 +549,7 @@ func (c *Operator) syncSubscription(key string) error {
 	return nil
 }
 
-func (c *Operator) destroySubscription(key string) error {
+func (c *Operator) destroyDeployment(key string) error {
 	obj, exists, err := c.deploymentInf.GetStore().GetByKey(key)
 	if err != nil {
 		return err
@@ -391,16 +557,16 @@ func (c *Operator) destroySubscription(key string) error {
 	if !exists {
 		return nil
 	}
-	deployment := obj.(*extensionsobj.Deployment)
+	deployment := obj.(*v1beta1.Deployment)
 
 	// Only necessary until GC is properly implemented in both Kubernetes and OpenShift.
 	scaleClient := c.kclient.Extensions().Scales(deployment.Namespace)
-	if _, err := scaleClient.Update("deployment", &extensionsobj.Scale{
+	if _, err := scaleClient.Update("deployment", &v1beta1.Scale{
 		ObjectMeta: v1.ObjectMeta{
 			Namespace: deployment.Namespace,
 			Name:      deployment.Name,
 		},
-		Spec: extensionsobj.ScaleSpec{
+		Spec: v1beta1.ScaleSpec{
 			Replicas: 0,
 		},
 	}); err != nil {
@@ -409,7 +575,7 @@ func (c *Operator) destroySubscription(key string) error {
 
 	deploymentClient := c.kclient.Extensions().Deployments(deployment.Namespace)
 	currentGeneration := deployment.Generation
-	if err := wait.PollInfinite(1 * time.Second, func() (bool, error) {
+	if err := wait.PollInfinite(1*time.Second, func() (bool, error) {
 		updatedDeployment, err := deploymentClient.Get(deployment.Name)
 		if err != nil {
 			return false, err
@@ -423,4 +589,130 @@ func (c *Operator) destroySubscription(key string) error {
 	// Let's get ready for proper GC by ensuring orphans are not left behind.
 	orphan := false
 	return deploymentClient.Delete(deployment.ObjectMeta.Name, &api.DeleteOptions{OrphanDependents: &orphan})
+}
+
+func (c *Operator) destroyService(key string) error {
+	obj, exists, err := c.serviceInf.GetStore().GetByKey(key)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return nil
+	}
+	service := obj.(*v1.Service)
+
+	serviceClient := c.kclient.Services(service.Namespace)
+	// Let's get ready for proper GC by ensuring orphans are not left behind.
+	orphan := false
+	return serviceClient.Delete(service.ObjectMeta.Name, &api.DeleteOptions{OrphanDependents: &orphan})
+}
+
+func (c *Operator) syncFunction(key string) error {
+	obj, exists, err := c.functionInf.GetIndexer().GetByKey(key)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		err = c.destroyDeployment(key)
+		if err != nil {
+			return err
+		}
+		return c.destroyService(key)
+	}
+	function := obj.(*v1.ConfigMap)
+
+	runtimeName := function.Labels[RuntimeLabel]
+	if len(runtimeName) == 0 {
+		return fmt.Errorf("Function %s/%s does not have label %s", function.Namespace, function.Name, RuntimeLabel)
+	}
+	ns := function.Namespace
+	runtimeKey := runtimeName
+	if len(ns) > 0 && !strings.Contains(runtimeName, "/") {
+		runtimeKey = ns + "/" + runtimeKey
+	}
+	obj, exists, err = c.runtimeInf.GetIndexer().GetByKey(runtimeKey)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("Runtime %s does not exist for Function %s/%s current connector keys are %v", runtimeKey, function.Namespace, function.Name, c.connectorInf.GetIndexer().ListKeys())
+	}
+	runtime := obj.(*v1.ConfigMap)
+	if runtime == nil {
+		return fmt.Errorf("Runtime %s does not exist for Function %s/%s", runtimeKey, function.Namespace, function.Name)
+	}
+
+	deploymentClient := c.kclient.Extensions().Deployments(function.Namespace)
+	obj, exists, err = c.deploymentInf.GetIndexer().GetByKey(key)
+	if err != nil {
+		return err
+	}
+
+	var d2 *v1beta1.Deployment
+	if !exists {
+		d, err := makeFunctionDeployment(function, runtime, nil)
+		if err != nil {
+			return fmt.Errorf("make deployment: %s", err)
+		}
+		if d2, err = deploymentClient.Create(d); err != nil {
+			return fmt.Errorf("create deployment: %s", err)
+		}
+	} else {
+		d, err := makeFunctionDeployment(function, runtime, obj.(*v1beta1.Deployment))
+		if err != nil {
+			return fmt.Errorf("update deployment: %s", err)
+		}
+		if d2, err = deploymentClient.Update(d); err != nil {
+			return err
+		}
+	}
+	serviceClient := c.kclient.Services(function.Namespace)
+	obj, exists, err = c.serviceInf.GetIndexer().GetByKey(key)
+	if err != nil {
+		c.logger.Log("msg", "==== failed to find service", "key", key)
+		return err
+	}
+
+	if !exists {
+		s, err := makeFunctionService(function, runtime, nil, d2)
+		if err != nil {
+			return fmt.Errorf("make service: %s", err)
+		}
+		if _, err := serviceClient.Create(s); err != nil {
+			return fmt.Errorf("create service: %s", err)
+		}
+		return nil
+	}
+	old := obj.(*v1.Service)
+	s, err := makeFunctionService(function, runtime, old, d2)
+	if err != nil {
+		return fmt.Errorf("update service: %s", err)
+	}
+
+	// lets copy any missing annotations
+	if old.Annotations != nil {
+		for k, v := range old.Annotations {
+			if len(s.Annotations[k]) == 0 {
+				s.Annotations[k] = v
+			}
+		}
+	}
+	// lets copy across any missing NodePorts
+	s.Spec.Type = old.Spec.Type
+	oldPortCount := len(old.Spec.Ports)
+	for i, _ := range s.Spec.Ports {
+		if i < oldPortCount {
+			s.Spec.Ports[i].NodePort = old.Spec.Ports[i].NodePort
+		}
+	}
+
+	// we must update these fields to be able to update the resource
+	s.ResourceVersion = old.ResourceVersion
+	s.Spec.ClusterIP = old.Spec.ClusterIP
+
+	if _, err := serviceClient.Update(s); err != nil {
+		c.logger.Log("msg", "failed to update service", "name", s.Name, "namespace", function.Namespace)
+		return err
+	}
+	return nil
 }

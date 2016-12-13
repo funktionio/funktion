@@ -28,6 +28,7 @@ _testmain.go
 
 # IDE stuff
 .idea
+.vscode
 
 # external packages folder
 vendor/
