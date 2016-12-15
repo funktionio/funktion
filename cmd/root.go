@@ -27,6 +27,8 @@ import (
 const (
 	subscriptionKind = "subscription"
 	connectorKind = "connector"
+	runtimeKind = "runtime"
+	functionKind = "function"
 )
 
 var RootCmd = &cobra.Command{
@@ -73,7 +75,6 @@ func createKubernetesClient(cmd *cobra.Command, kubeConfigPath string, kubeclien
 	return nil
 }
 
-
 func handleError(err error) {
 	if err != nil {
 		fmt.Printf("Failed: %v\n", err)
@@ -88,6 +89,12 @@ func listOptsForKind(kind string) (string, *api.ListOptions, error) {
 	case "c", "connector", "connectors":
 		listOpts, err := funktion.CreateConnectorListOptions()
 		return connectorKind, listOpts, err
+	case "r", "runtime", "runtimes":
+		listOpts, err := funktion.CreateRuntimeListOptions()
+		return runtimeKind, listOpts, err
+	case "f", "function", "functions", "funktion", "funktions":
+		listOpts, err := funktion.CreateFunctionListOptions()
+		return functionKind, listOpts, err
 	default:
 		return "", nil, fmt.Errorf("Unknown kind `%s` when known kinds are (`connector`, `subscription`)", kind)
 	}
