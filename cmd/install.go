@@ -32,6 +32,7 @@ import (
 const (
 	connectorMetadataUrl = "io/fabric8/funktion/connector-package/maven-metadata.xml"
 	connectorPackageUrlPrefix = "io/fabric8/funktion/connector-package/%[1]s/connector-package-%[1]s-"
+	runtimePackageUrlPrefix = "io/fabric8/funktion/funktion-runtimes/%[1]s/funktion-runtimes-%[1]s-"
 )
 
 type installCmd struct {
@@ -45,6 +46,8 @@ type installCmd struct {
 	mavenRepo      string
 	replace        bool
 	listConnectors bool
+	allConnectors  bool
+	noRuntimes     bool
 }
 
 func init() {
@@ -75,7 +78,9 @@ func newInstallCmd() *cobra.Command {
 	f.StringVarP(&p.namespace, "namespace", "n", "", "the namespace to query")
 	f.StringVarP(&p.version, "version", "v", "latest", "the version of the connectors to install")
 	f.BoolVar(&p.replace, "replace", false, "if enabled we will replace exising Connectors with installed version")
-	f.BoolVar(&p.listConnectors, "list", false, "list all the available Connectors but don't install them")
+	f.BoolVarP(&p.listConnectors, "list-connectors", "l", false, "list all the available Connectors but don't install them")
+	f.BoolVarP(&p.allConnectors, "all-connectors", "a", false, "Install all the connectors")
+	f.BoolVar(&p.noRuntimes, "no-runtimes", false, "Do not install the Runtimes for function implementations")
 	return cmd
 }
 
@@ -85,20 +90,79 @@ func (p *installCmd) run() error {
 	if err != nil {
 		return err
 	}
-	uri := fmt.Sprintf(urlJoin(mavenRepo, connectorPackageUrlPrefix), version) + "kubernetes.yml"
-	resp, err := http.Get(uri)
-	if err != nil {
-		return fmt.Errorf("Cannot load YAML package at %s got: %v", uri, err)
+	if !p.listConnectors && !p.noRuntimes {
+		runtimeUri := fmt.Sprintf(urlJoin(mavenRepo, runtimePackageUrlPrefix), version) + "kubernetes.yml"
+		err = p.installRuntimes(runtimeUri, version)
+		if err != nil {
+			return err
+		}
 	}
-	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	connectorUri := fmt.Sprintf(urlJoin(mavenRepo, connectorPackageUrlPrefix), version) + "kubernetes.yml"
+	return p.installConnectors(connectorUri, version);
+}
+
+func (p *installCmd) installRuntimes(uri string, version string) error {
+	list, err := p.loadList(uri)
 	if err != nil {
-		return fmt.Errorf("Cannot load YAML from %s got: %v", uri, err)
+		return err
 	}
-	list := v1.List{}
-	err = yaml.Unmarshal(data, &list)
+	listOpts, err := funktion.CreateRuntimeListOptions()
 	if err != nil {
-		return fmt.Errorf("Cannot parse YAML from %s got: %v", uri, err)
+		return err
+	}
+	cms := p.kubeclient.ConfigMaps(p.namespace)
+	resources, err := cms.List(*listOpts)
+	if err != nil {
+		return err
+	}
+	existingNames := map[string]bool{}
+	for _, resource := range resources.Items {
+		existingNames[resource.Name] = true
+	}
+	count := 0
+	ignored := 0
+	for _, item := range list.Items {
+		cm, err := toConfigMap(&item)
+		if err != nil {
+			return err
+		}
+		name := cm.Name
+		update := false
+		operation := "create"
+		if existingNames[name] {
+			if p.replace {
+				update = true
+			} else {
+				ignored++
+				continue
+			}
+		}
+
+		if update {
+			operation = "update"
+			_, err = cms.Update(cm)
+		} else {
+			_, err = cms.Create(cm)
+		}
+		if err != nil {
+			return fmt.Errorf("Failed to %s Runtime %s due to %v", operation, name, err)
+		}
+		count++
+	}
+
+	ignoreMessage := ""
+	if !p.replace && ignored > 0 {
+		ignoreMessage = fmt.Sprintf(". Ignored %d Runtimes as they are already installed. (Please use `--replace` to force replacing them)", ignored)
+	}
+
+	fmt.Printf("Installed %d Runtimes from version: %s%s\n", count, version, ignoreMessage)
+	return nil
+}
+
+func (p *installCmd) installConnectors(uri string, version string) error {
+	list, err := p.loadList(uri)
+	if err != nil {
+		return err
 	}
 	listOpts, err := funktion.CreateConnectorListOptions()
 	if err != nil {
@@ -120,6 +184,9 @@ func (p *installCmd) run() error {
 
 	if p.listConnectors {
 		fmt.Printf("Version %s has Connectors:\n", version)
+	} else if !p.allConnectors && len(onlyNames) == 0 {
+		fmt.Printf("No connector names listed so none have been installed.\nPlease specify the connector names to install, use `--all-connectors` to install then all or use `--list-connectors` to list them\n")
+		return nil
 	}
 
 	count := 0
@@ -173,6 +240,24 @@ func (p *installCmd) run() error {
 
 	fmt.Printf("Installed %d Connectors from version: %s%s\n", count, version, ignoreMessage)
 	return nil
+}
+
+func (p *installCmd) loadList(uri string) (*v1.List, error) {
+	resp, err := http.Get(uri)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot load YAML package at %s got: %v", uri, err)
+	}
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot load YAML from %s got: %v", uri, err)
+	}
+	list := v1.List{}
+	err = yaml.Unmarshal(data, &list)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot parse YAML from %s got: %v", uri, err)
+	}
+	return &list, nil
 }
 
 func toConfigMap(item *runtime.RawExtension) (*v1.ConfigMap, error) {
