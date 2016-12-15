@@ -109,21 +109,24 @@ func (p *subscribeCmd) run() error {
 		return err
 	}
 
-	actions := []spec.FunktionAction{}
+	actions := []spec.FunktionStep{}
+	actions = append(actions, spec.FunktionStep{
+		Kind: spec.EndpointKind,
+		URI: fromUrl,
+	})
 	for _, toUrl := range p.toUrls {
-		actions = append(actions, spec.FunktionAction{
+		actions = append(actions, spec.FunktionStep{
 			Kind: spec.EndpointKind,
-			URL: toUrl,
+			URI: toUrl,
 		})
 	}
 	funktionConfig := spec.FunkionConfig{
-		Rules: []spec.FunktionRule{
-			spec.FunktionRule{
+		Flows: []spec.FunktionFlow{
+			spec.FunktionFlow{
 				Name: "default",
-				Trigger: fromUrl,
 				LogResult: p.logResult,
 				Trace: p.trace,
-				Actions: actions,
+				Steps: actions,
 			},
 		},
 	}

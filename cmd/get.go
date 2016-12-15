@@ -27,6 +27,7 @@ import (
 
 	"github.com/fabric8io/funktion-operator/pkg/funktion"
 	"github.com/fabric8io/funktion-operator/pkg/spec"
+	"bytes"
 )
 
 type getCmd struct {
@@ -157,22 +158,31 @@ func (p *getCmd) subscriptionFlowText(cm *v1.ConfigMap) string {
 	if err != nil {
 		return fmt.Sprintf("Failed to parse `%s` YAML: %v", funktion.FunktionYmlProperty, err)
 	}
-	if len(fc.Rules) == 0 {
-		return "No funktion rules"
+	if len(fc.Flows) == 0 {
+		return "No funktion flows"
 	}
-	rule := fc.Rules[0]
-	actions := rule.Actions
-	actionMessage := "No action"
-	if len(actions) > 0 {
-		action := actions[0]
-		switch action.Kind {
-		case spec.EndpointKind:
-			actionMessage = fmt.Sprintf("%s", action.URL)
-		case spec.FunctionKind:
-			actionMessage = fmt.Sprintf("function %s", action.Name)
+	rule := fc.Flows[0]
+	steps := rule.Steps
+	actionMessage := "No steps!"
+	if len(steps) > 0 {
+		var buffer bytes.Buffer
+		for i, step := range steps {
+			if i > 0 {
+				buffer.WriteString(" => ")
+			}
+			kind := step.Kind
+			text := kind
+			switch kind {
+			case spec.EndpointKind:
+				text = fmt.Sprintf("%s", step.URI)
+			case spec.FunctionKind:
+				text = fmt.Sprintf("function %s", step.Name)
+			}
+			buffer.WriteString(text)
 		}
+		actionMessage = buffer.String()
 	}
-	return fmt.Sprintf("%s => %s", rule.Trigger, actionMessage)
+	return actionMessage
 }
 
 func (p *getCmd) subscriptionPodText(cm *v1.ConfigMap) string {

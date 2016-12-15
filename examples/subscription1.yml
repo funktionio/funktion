@@ -8,14 +8,14 @@ metadata:
     connector: "timer"
 data:
   application.properties: |
-    # spring application proeprties file
-    welcome = Hello from Kubernetes ConfigMap!!!
-    dummy = some value
+    # spring application properties file
+    foo = bar
   funktion.yml: |
     ---
-    rules:
-      - trigger: timer://foo?fixedRate=true&period=5000
-        logResult: true
-        actions:
+    flows:
+      - logResult: true
+        steps:
         - kind: endpoint
-          url: http://ip.jsontest.com/
+          uri: timer://foo?fixedRate=true&period=5000
+        - kind: endpoint
+          uri: http://ip.jsontest.com/

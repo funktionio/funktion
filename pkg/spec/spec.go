@@ -48,19 +48,20 @@ type ConnectorSpec struct {
 }
 
 type FunkionConfig struct {
-	Rules []FunktionRule   `json:"rules"`
+	Flows []FunktionFlow   `json:"flows"`
 }
 
-type FunktionRule struct {
+type FunktionFlow struct {
 	Name      string   `json:"name,omitempty"`
-	Trigger   string   `json:"trigger,omitempty"`
 	Trace     bool   `json:"trace,omitempty"`
 	LogResult bool   `json:"logResult,omitempty"`
-	Actions   []FunktionAction   `json:"actions"`
+	Steps     []FunktionStep   `json:"steps"`
 }
 
-type FunktionAction struct {
+type FunktionStep struct {
 	Kind string   `json:"kind"`
 	Name string   `json:"name,omitempty"`
-	URL  string   `json:"url,omitempty"`
+	URI  string   `json:"uri,omitempty"`
+	Body  string   `json:"body,omitempty"`
+	Headers  map[string]string   `json:"body,omitempty"`
 }
