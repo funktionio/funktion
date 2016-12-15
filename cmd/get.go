@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ghodss/yaml"
@@ -27,7 +28,6 @@ import (
 
 	"github.com/fabric8io/funktion-operator/pkg/funktion"
 	"github.com/fabric8io/funktion-operator/pkg/spec"
-	"bytes"
 )
 
 type getCmd struct {
