@@ -43,11 +43,11 @@ Or to remove all the Subscriptions or Connectors use `--all`
 
     funktion delete subscription --all
 
-### Installing Connectors
+### Installing Runtimes and Connectors
 
-To install the default connectors into your namespace type the following:
+To install the default function runtimes and connectors into your namespace type the following:
  
-    funktion install
+    funktion install --all-connectors
 
 There's over [200 connectors](http://camel.apache.org/components.html) provided out of the box. If you only want to install a number of them you can specify their names as parameters
 
@@ -55,7 +55,11 @@ There's over [200 connectors](http://camel.apache.org/components.html) provided 
 
 To just get a feel for what connectors are available without installing them try:
 
-     funktion install --list
+     funktion install --list-connectors
+
+or for short:
+
+     funktion install -l
 
 ### Running the Operator
 
