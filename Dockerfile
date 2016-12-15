@@ -1,5 +1,5 @@
 FROM scratch
 
-ADD funktion-linux-static /bin/operator
+ADD ./out/funktion-operator-linux-amd64 /bin/operator
 
 ENTRYPOINT ["/bin/operator", "operate"]
