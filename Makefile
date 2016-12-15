@@ -1,5 +1,6 @@
 build: check funktion-operator
 
+VERSION ?= $(shell cat version/VERSION)
 REPO = fabric8io/funktion-operator
 TAG = latest
 GO := GO15VENDOREXPERIMENT=1 go
