@@ -15,11 +15,59 @@ In a sense funktion is a [serverless](https://www.quora.com/What-is-Serverless-C
 
 
 ## Using the CLI
+
+First you need to [download the funktion](https://github.com/fabric8io/funktion-operator/releases) binary and add it to your `PATH` environment variable 
    
 You can get help on the available commands via:
     
     funktion
 
+### Quick example
+
+Type the following commands. To make it easier to see what kubernetes resources are being created you may wish to create a new namespace for this experiment first:
+
+    kubectl create namespace funky
+    kubectl config set-context `kubectl config current-context` --namespace=funky
+
+First we'll install the runtimes and a couple of connectors
+
+    funktion install timer twitter 
+    
+Now lets run the `funktion operator` to watch for funktion resources and create the necessary kubernetes `Deployment` and `Services`.
+    
+    funktion operate
+    
+Open another terminal then type:
+
+    kubectl apply -f https://raw.githubusercontent.com/fabric8io/funktion-operator/master/examples/subscription1.yml
+
+You should now have created a subscription flow. You can view the subscription via
+    
+    funktion get subscription
+    
+To view the output of the subscription you can use the following (assuming you've [enabled tab completion for kubectl](https://blog.fabric8.io/enable-bash-completion-for-kubernetes-with-kubectl-506bc89fe79e#.9oky2fe2e)
+
+    kubectl logs -f subscription1-[TAB]
+
+If you don't have tab completion you can specify the exact pod name, or you can use this command to find it and use it:
+
+    kubectl logs -f `kubectl get pod -oname -lfunktion.fabric8.io/kind=Subscription`
+
+To delete the subscription:
+    
+    funktion delete subscription subscription1
+
+Now lets create a function:       
+    
+    kubectl apply -f https://raw.githubusercontent.com/fabric8io/funktion-operator/master/examples/function1.yml
+
+If you are running the [fabric8 console](http://fabric8.io/guide/console.html) then you will have the [exposecontroller]() microservice running and will be able to invoke it via running one of these commands:
+        
+    minikube service function1 -n funky
+    gofabric8 service function1 -n funky
+
+Or clicking on the `funktion1` service in the [fabric8 console](http://fabric8.io/guide/console.html) in the `Services` tab for the `funky` namespace.      
+        
 ### Browsing resources
     
 To list all the Connectors or Subscriptions try:
