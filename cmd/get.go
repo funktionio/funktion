@@ -56,7 +56,7 @@ func newGetCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			p.cmd = cmd
 			if len(args) == 0 {
-				handleError(fmt.Errorf("No resource kind argument supplied!"))
+				handleError(fmt.Errorf("No resource kind argument supplied! Possible values ['connector', 'subscription', 'function', 'runtime']"))
 				return
 			}
 			p.kind = args[0]
