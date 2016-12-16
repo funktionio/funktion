@@ -17,6 +17,9 @@ In a sense funktion is a [serverless](https://www.quora.com/What-is-Serverless-C
 ## Using the CLI
 
 First you need to [download the funktion](https://github.com/fabric8io/funktion-operator/releases) binary and add it to your `PATH` environment variable 
+
+The following assumes you have a kubernetes cluster. e.g. by [installing and starting minikube](https://github.com/kubernetes/minikube#installation) and then [installing kubectl](http://kubernetes.io/docs/user-guide/prereqs/) and putting it on your `PATH` environment variable.
+
    
 You can get help on the available commands via:
     
