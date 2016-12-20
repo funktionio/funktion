@@ -28,6 +28,9 @@ const (
 	// DeploymentYmlProperty data key for the deployment yaml file
 	DeploymentYmlProperty = "deployment.yml"
 
+	// SchemaYmlProperty data key for the schema (JSON schema as YAML) file
+	SchemaYmlProperty = "schema.yml"
+
 	// Subscription
 
 	// FunktionYmlProperty the data key for the funktion yaml file

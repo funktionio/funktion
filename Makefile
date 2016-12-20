@@ -26,7 +26,7 @@ image: check funktion-linux-static
 	docker build -t $(REPO):$(TAG) .
 
 test:
-	CGO_ENABLED=0 $(GO) test github.com/fabric8io/funktion-operator/cmd
+	CGO_ENABLED=0 $(GO) test github.com/fabric8io/funktion-operator/cmd github.com/fabric8io/funktion-operator/pkg/funktion
 
 e2e:
 	go test -v ./test/e2e/ --kubeconfig "$(HOME)/.kube/config" --operator-image=fabric8io/funktion-operator

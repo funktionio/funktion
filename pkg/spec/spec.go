@@ -47,6 +47,43 @@ type ConnectorSpec struct {
 	// TODO lets add a JSON Schema for how to configure the endpoints?
 }
 
+// ComponentSpec holds the component metadata in a ConnectorSchema
+type ComponentSpec struct {
+	Kind        string `json:"kind"`
+	Scheme      string `json:"scheme"`
+	Syntax      string `json:"syntax"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Label       string `json:"label"`
+	Deprecated  bool `json:"deprecated"`
+	Async       bool `json:"async"`
+	JavaType    string `json:"javaType"`
+	GroupId     string `json:"groupId"`
+	ArtifactId  string `json:"artifactId"`
+	Version     string `json:"version"`
+}
+
+// PropertySpec contains the metadata for an individual property on a component or endpoint
+type PropertySpec struct {
+	Kind        string `json:"kind"`
+	Group       string `json:"group"`
+	Label       string `json:"label"`
+	Required    bool `json:"required"`
+	Type        string `json:"type"`
+	JavaType    string `json:"javaType"`
+	Enum        []string `json:"enum"`
+	Deprecated  bool `json:"deprecated"`
+	Secret      bool `json:"secret"`
+	Description string `json:"description"`
+}
+
+// ConnectorSchema holds the connector schema and metadata for the connector
+type ConnectorSchema struct {
+	Component           ComponentSpec `json:"component"`
+	ComponentProperties map[string]PropertySpec `json:"componentProperties"`
+	Properties          map[string]PropertySpec `json:"properties"`
+}
+
 type FunkionConfig struct {
 	Flows []FunktionFlow   `json:"flows"`
 }
@@ -59,9 +96,10 @@ type FunktionFlow struct {
 }
 
 type FunktionStep struct {
-	Kind string   `json:"kind"`
-	Name string   `json:"name,omitempty"`
-	URI  string   `json:"uri,omitempty"`
-	Body  string   `json:"body,omitempty"`
-	Headers  map[string]string   `json:"body,omitempty"`
+	Kind    string   `json:"kind"`
+	Name    string   `json:"name,omitempty"`
+	URI     string   `json:"uri,omitempty"`
+	Body    string   `json:"body,omitempty"`
+	Headers map[string]string   `json:"body,omitempty"`
 }
+

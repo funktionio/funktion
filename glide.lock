@@ -1,8 +1,8 @@
-hash: cbb805e86c66300f1bf073776d6464c8e2bcba8bde2343d888833e3384d7c7fe
-updated: 2016-12-12T15:36:05.856138344Z
+hash: 5a8010b476f0d74bd37d814c25e76369de6997f3593da80179427ca33730675a
+updated: 2016-12-20T13:42:41.144183077Z
 imports:
 - name: cloud.google.com/go
-  version: c116c7972ec94f148459a304d07a67ecbc770d4b
+  version: 3c4c8cc11d151d76587802cb55dd7b80beca832b
   subpackages:
   - compute/metadata
   - internal
@@ -27,7 +27,7 @@ imports:
   subpackages:
   - spew
 - name: github.com/docker/distribution
-  version: 923c7763b0e49cbb9f34da368108e8dde34e009d
+  version: 2d500932f2c7f032d2abc51f2ef940871d541319
   subpackages:
   - reference
   - digest
@@ -78,11 +78,13 @@ imports:
 - name: github.com/jonboulle/clockwork
   version: bcac9884e7502bb2b474c0339d889cb981a2f27f
 - name: github.com/jpillora/go-ogle-analytics
-  version: 49dbddd69887519886adf7763e0306e1f33ba50f
+  version: 14b04e0594ef6a9fd943363b135656f0ec8c9d0e
 - name: github.com/juju/ratelimit
   version: 77ed1c8a01217656d2080ad51981f6e99adaa177
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
+- name: github.com/magiconair/properties
+  version: 9c47895dc1ce54302908ab8a43385d1f5df2c11c
 - name: github.com/mailru/easyjson
   version: 9d6630dc8c577b56cb9687a9cf9e8578aca7298a
   subpackages:
@@ -98,19 +100,19 @@ imports:
 - name: github.com/PuerkitoBio/urlesc
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
 - name: github.com/spf13/cobra
-  version: 9495bc009a56819bdb0ddbc1a373e29c140bc674
+  version: b62566898a99f2db9c68ed0026aa0a052e59678d
 - name: github.com/spf13/pflag
-  version: 5ccb023bc27df288a957c5e994cd44fd19619465
+  version: 25f8b5b07aece3207895bf19f7ab517eb3b22a40
 - name: github.com/ugorji/go
   version: 9c7f9b7a2bc3a520f7c7b30b34b7f85f47fe27b6
   subpackages:
   - codec
 - name: golang.org/x/crypto
-  version: b07d8c96772f426812d3fc5530710ec1f3b205e7
+  version: 2b786ab9e9649dc660afa3bd580fd05a05e20d95
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: b1a2d6e8c8b5fc8f601ead62536f02a8e1b6217d
+  version: 45e771701b814666a7eb299e6c7a57d0b1799e91
   subpackages:
   - context
   - http2
@@ -121,24 +123,24 @@ imports:
   - trace
   - internal/timeseries
 - name: golang.org/x/oauth2
-  version: da3ce8d62a7f77aadfda06cb82bd604d6469c645
+  version: 314dd2c0bf3ebd592ec0d20847d27e79d0dbe8dd
   subpackages:
   - google
   - internal
   - jws
   - jwt
 - name: golang.org/x/sys
-  version: 478fcf54317e52ab69f40bb4c7a1520288d7f7ea
+  version: d75a52659825e75fff6158388dddc6a5b04f9ba5
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: 47a200a05c8b3fd1b698571caecbb68beb2611ec
+  version: a49bea13b776691cb1b49873e5d8df96ec74831a
   subpackages:
   - unicode/norm
   - width
   - transform
 - name: google.golang.org/appengine
-  version: ca59ef35f409df61fa4a5f8290ff289b37eccfb8
+  version: 08a149cfaee099e6ce4be01c0113a78c85ee1dee
   subpackages:
   - urlfetch
   - internal
@@ -150,7 +152,7 @@ imports:
   - internal/log
   - internal/remote_api
 - name: google.golang.org/grpc
-  version: 8712952b7d646dbbbc6fb73a782174f3115060f3
+  version: 09aecb094ef6b9ebe49dd999f52c505beeeb402e
   subpackages:
   - codes
   - credentials
@@ -177,7 +179,6 @@ imports:
   - 1.5/pkg/apis/extensions/v1beta1
   - 1.5/pkg/runtime
   - 1.5/pkg/labels
-  - 1.5/pkg/util/intstr
   - 1.5/pkg/util/runtime
   - 1.5/pkg/util/wait
   - 1.5/pkg/watch
@@ -219,6 +220,7 @@ imports:
   - 1.5/pkg/runtime/serializer
   - 1.5/pkg/selection
   - 1.5/pkg/types
+  - 1.5/pkg/util/intstr
   - 1.5/pkg/util/labels
   - 1.5/pkg/util/rand
   - 1.5/pkg/util/sets
@@ -238,7 +240,6 @@ imports:
   - 1.5/tools/auth
   - 1.5/tools/clientcmd/api
   - 1.5/tools/clientcmd/api/latest
-  - 1.5/pkg/genericapiserver/openapi/common
   - 1.5/pkg/util/net
   - 1.5/pkg/api/validation/path
   - 1.5/pkg/runtime/serializer/streaming
@@ -250,6 +251,7 @@ imports:
   - 1.5/pkg/apis/certificates
   - 1.5/pkg/apis/policy
   - 1.5/pkg/util/clock
+  - 1.5/pkg/genericapiserver/openapi/common
   - 1.5/pkg/apis/apps/v1alpha1
   - 1.5/pkg/apis/authorization/v1beta1
   - 1.5/pkg/apis/autoscaling/v1
