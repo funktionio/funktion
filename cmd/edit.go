@@ -27,6 +27,7 @@ import (
 
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api/v1"
+	"strconv"
 )
 
 type editConnectorCmd struct {
@@ -36,10 +37,13 @@ type editConnectorCmd struct {
 
 	namespace             string
 	name                  string
+	listProperties        bool
 
 	configMaps            map[string]*v1.ConfigMap
 	schema                *spec.ConnectorSchema
 	applicationProperties *properties.Properties
+
+	setProperties         map[string]string
 }
 
 func init() {
@@ -61,7 +65,7 @@ func newEditConnectorCmd() *cobra.Command {
 	p := &editConnectorCmd{
 	}
 	cmd := &cobra.Command{
-		Use:   "connector NAME [flags]",
+		Use:   "connector NAME [flags] [prop1=value1] [prop2=value2]",
 		Short: "edits a connectors configuration",
 		Long:  `This command will edit a connector resource`,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -71,6 +75,14 @@ func newEditConnectorCmd() *cobra.Command {
 				return
 			}
 			p.name = args[0]
+			if len(args) > 1 {
+				sp, err := parseProperties(args[1:])
+				if err != nil {
+					handleError(err)
+					return
+				}
+				p.setProperties = sp
+			}
 			err := createKubernetesClient(cmd, p.kubeConfigPath, &p.kubeclient, &p.namespace)
 			if err != nil {
 				handleError(err)
@@ -82,7 +94,20 @@ func newEditConnectorCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
 	f.StringVar(&p.namespace, "namespace", "", "the namespace to query")
+	f.BoolVarP(&p.listProperties, "list", "l", false, "list the properties to edit")
 	return cmd
+}
+
+func parseProperties(args []string) (map[string]string, error) {
+	m := map[string]string{}
+	for _, arg := range args {
+		values := strings.SplitN(arg, "=", 2)
+		if len(values) != 2 {
+			return nil, fmt.Errorf("Argument does not contain `=` but was `%s`", arg)
+		}
+		m[values[0]] = values[1]
+	}
+	return m, nil
 }
 
 func (p *editConnectorCmd) run() error {
@@ -110,7 +135,12 @@ func (p *editConnectorCmd) run() error {
 	if err != nil {
 		return err
 	}
-	err = p.editConnector(name, connector)
+	if p.listProperties {
+		err = p.listConnectorProperties(name, connector)
+
+	} else {
+		err = p.editConnector(name, connector)
+	}
 	if err != nil {
 		return err
 	}
@@ -145,6 +175,34 @@ func (p *editConnectorCmd) loadConnectorSchema(name string, connector *v1.Config
 	return nil
 }
 
+func (p *editConnectorCmd) listConnectorProperties(name string, connector *v1.ConfigMap) error {
+	compProps := p.schema.ComponentProperties
+	if len(compProps) == 0 {
+		fmt.Printf("The connector `%s` has no properties to configure!", name)
+		return nil
+	}
+
+	maxLen := 1
+	for k, _ := range compProps {
+		l := len(k)
+		if l > maxLen {
+			maxLen = l
+		}
+	}
+	colText := strconv.Itoa(maxLen)
+	fmt.Printf("  %-" + colText + "s VALUE\n", "NAME")
+	for k, cp := range compProps {
+		propertyKey := "camel.component." + name + "." + funktion.ToSpringBootPropertyName(k)
+		value := p.applicationProperties.GetString(propertyKey, "")
+		prompt := "?"
+		if cp.Required {
+			prompt = "*"
+		}
+		fmt.Printf("%s %-" + colText + "s %s\n", prompt, k, value)
+	}
+	return nil
+}
+
 func (p *editConnectorCmd) editConnector(name string, connector *v1.ConfigMap) error {
 	compProps := p.schema.ComponentProperties
 	if len(compProps) == 0 {
@@ -153,46 +211,54 @@ func (p *editConnectorCmd) editConnector(name string, connector *v1.ConfigMap) e
 	}
 
 	updated := false
-	for k, cp := range compProps {
-		label := funktion.HumanizeString(k)
-		propertyKey := "camel.component." + name + "." + funktion.ToSpringBootPropertyName(k)
-
-		value := p.applicationProperties.GetString(propertyKey, "")
-		valueText := ""
-		boolType := cp.Type == "boolean"
-		if len(value) > 0 {
-			if boolType {
-				if value == "true" {
-					valueText = "[Y/n]"
-				} else {
-					valueText = "[y/N]"
-				}
-
-			} else {
-				valueText = "[" + value + "]"
-			}
+	if len(p.setProperties) > 0 {
+		for k, v := range p.setProperties {
+			propertyKey := springPropertiesKey(name, k)
+			p.applicationProperties.Set(propertyKey, v)
 		}
-		prompt := "?"
-		if cp.Required {
-			prompt = "*"
-		}
-		fmt.Printf("%s %s%s: ", prompt, label, valueText)
+		updated = true
+	} else {
+		for k, cp := range compProps {
+			label := funktion.HumanizeString(k)
+			propertyKey := springPropertiesKey(name, k)
 
-		var input string
-		fmt.Scanln(&input)
-		if len(input) > 0 {
-			// convert boolean to true/false values
-			if boolType {
-				lower := strings.TrimSpace(strings.ToLower(input))
-				if lower[0] == 't' {
-					input = "true"
+			value := p.applicationProperties.GetString(propertyKey, "")
+			valueText := ""
+			boolType := cp.Type == "boolean"
+			if len(value) > 0 {
+				if boolType {
+					if value == "true" {
+						valueText = "[Y/n]"
+					} else {
+						valueText = "[y/N]"
+					}
+
 				} else {
-					input = "false"
+					valueText = "[" + value + "]"
 				}
 			}
+			prompt := "?"
+			if cp.Required {
+				prompt = "*"
+			}
+			fmt.Printf("%s %s%s: ", prompt, label, valueText)
 
-			p.applicationProperties.Set(propertyKey, input)
-			updated = true
+			var input string
+			fmt.Scanln(&input)
+			if len(input) > 0 {
+				// convert boolean to true/false values
+				if boolType {
+					lower := strings.TrimSpace(strings.ToLower(input))
+					if lower[0] == 't' {
+						input = "true"
+					} else {
+						input = "false"
+					}
+				}
+
+				p.applicationProperties.Set(propertyKey, input)
+				updated = true
+			}
 		}
 	}
 
@@ -215,4 +281,8 @@ func (p *editConnectorCmd) editConnector(name string, connector *v1.ConfigMap) e
 		return err
 	}
 	return nil
+}
+
+func springPropertiesKey(name string, k string) string {
+	return "camel.component." + name + "." + funktion.ToSpringBootPropertyName(k)
 }
