@@ -23,6 +23,8 @@ import (
 const (
 	EndpointKind = "endpoint"
 	FunctionKind = "function"
+	SetBodyKind = "setBody"
+	SetHeadersKind = "setHeaders"
 )
 
 // Connector defines how to create a Deployment for a Subscription

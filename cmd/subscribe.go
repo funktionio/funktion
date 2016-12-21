@@ -35,8 +35,7 @@ import (
 type subscribeCmd struct {
 	subscriptionName string
 	connectorName    string
-	fromUrl          string
-	toUrls           []string
+	args             []string
 	trace            bool
 	logResult        bool
 	namespace        string
@@ -53,11 +52,12 @@ func newSubscribeCmd() *cobra.Command {
 	p := &subscribeCmd{
 	}
 	cmd := &cobra.Command{
-		Use:   "subscribe",
-		Short: "Subscribes to the given event and then invokes a function or HTTP endpoint",
+		Use:   "subscribe [flags] [endpointUrl] [function:name] [setBody:content] [setHeaders:foo=bar,xyz=abc]",
+		Short: "Subscribes to the given event stream and then invokes a function or HTTP endpoint",
 		Long:  `This command will create a new Subscription which receives input events and then invokes either a function or HTTP endpoint`,
 		Run: func(cmd *cobra.Command, args []string) {
 			p.cmd = cmd
+			p.args = args
 			err := createKubernetesClient(cmd, p.kubeConfigPath, &p.kubeclient, &p.namespace)
 			if err != nil {
 				handleError(err)
@@ -68,9 +68,7 @@ func newSubscribeCmd() *cobra.Command {
 	}
 	f := cmd.Flags()
 	f.StringVarP(&p.subscriptionName, "name", "n", "", "name of the subscription to create")
-	f.StringVarP(&p.fromUrl, "from", "f", "", "the URL to consume from")
 	f.StringVarP(&p.connectorName, "connector", "c", "", "the Connector name to use. If not specified uses the first URL scheme")
-	f.StringArrayVarP(&p.toUrls, "to", "t", []string{}, "the URL to invoke")
 	f.BoolVar(&p.trace, "trace", false, "enable tracing on the subscription")
 	f.BoolVar(&p.logResult, "log-result", true, "whether to log the result of the subcription to the log of the subcription pod")
 	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
@@ -81,8 +79,16 @@ func (p *subscribeCmd) run() error {
 	var err error
 	update := false
 	name := p.subscriptionName
+	args := p.args
+	if len(args) == 0 {
+		return fmt.Errorf("No arguments specified! A subscription must have one or more arguments of the form: [endpointUrl] | [function:name] | [setBody:content] | [setHeaders:foo=bar,abc=123]")
+	}
+	steps, err := parseSteps(args)
+	if err != nil {
+		return err
+	}
 	if len(name) == 0 {
-		name, err = p.generateName()
+		name, err = p.generateName(steps)
 		if err != nil {
 			return err
 		}
@@ -92,41 +98,34 @@ func (p *subscribeCmd) run() error {
 			update = true
 		}
 	}
-	fromUrl := p.fromUrl
-	toUrl := p.toUrls
 	connectorName := p.connectorName
 	if len(connectorName) == 0 {
-		connectorName, err = urlScheme(fromUrl)
-		if err != nil {
-			return err
+		for _, step := range steps {
+			uri := step.URI
+			if len(uri) > 0 {
+				connectorName, err = urlScheme(uri)
+				if err != nil {
+					return err
+				}
+				if len(connectorName) == 0 {
+					return fmt.Errorf("No scheme specified for from URI %s", uri)
+				}
+			}
 		}
 	}
-	if len(connectorName) == 0 {
-		return fmt.Errorf("No scheme specified for from URL %s", fromUrl)
-	}
-	err = p.checkConnectorExists(connectorName)
+	connector, err := p.checkConnectorExists(connectorName)
 	if err != nil {
 		return err
 	}
 
-	actions := []spec.FunktionStep{}
-	actions = append(actions, spec.FunktionStep{
-		Kind: spec.EndpointKind,
-		URI: fromUrl,
-	})
-	for _, toUrl := range p.toUrls {
-		actions = append(actions, spec.FunktionStep{
-			Kind: spec.EndpointKind,
-			URI: toUrl,
-		})
-	}
+
 	funktionConfig := spec.FunkionConfig{
 		Flows: []spec.FunktionFlow{
 			spec.FunktionFlow{
 				Name: "default",
 				LogResult: p.logResult,
 				Trace: p.trace,
-				Steps: actions,
+				Steps: steps,
 			},
 		},
 	}
@@ -135,7 +134,13 @@ func (p *subscribeCmd) run() error {
 		return fmt.Errorf("Failed to marshal funktion %v due to marshalling error %v", &funktionConfig, err)
 	}
 	funktionYml := string(funktionData)
-	applicationProperties := "# put your spring boot configuration properties here..."
+	applicationProperties := ""
+	if connector.Data != nil {
+		applicationProperties = connector.Data[funktion.ApplicationPropertiesProperty]
+	}
+	if len(applicationProperties) == 0 {
+		applicationProperties = "# put your spring boot configuration properties here..."
+	}
 
 	labels := map[string]string{
 		funktion.KindLabel: funktion.SubscriptionKind,
@@ -160,30 +165,95 @@ func (p *subscribeCmd) run() error {
 		_, err = p.kubeclient.ConfigMaps(p.namespace).Create(&cm)
 	}
 	if err == nil {
-		fmt.Printf("Created subscription %s from %s => %s\n", name, fromUrl, toUrl)
+		fmt.Printf("Created subscription %s flow: %s\n", name, stepsText(steps))
 	}
 	return err
 }
 
-func (p *subscribeCmd) checkConnectorExists(name string) error {
+const (
+	functionArgSuffix = "funktion:"
+	setBodyArgSuffix = "setBody:"
+	setHeadersArgSuffix = "setHeaders:"
+)
+// parseSteps parses a sequence of arguments as either endpoint URLs, function:name,
+// setBody:content, setHeaders:foo=bar,abc=def
+func parseSteps(args []string) ([]spec.FunktionStep, error) {
+	steps := []spec.FunktionStep{}
+	for _, arg := range args {
+		var step *spec.FunktionStep
+		if strings.HasSuffix(arg, functionArgSuffix) {
+			name := strings.TrimSuffix(arg, functionArgSuffix)
+			if len(name) == 0 {
+				return steps, fmt.Errorf("Function name required after %s", functionArgSuffix)
+			}
+			step = &spec.FunktionStep{
+				Kind: spec.FunctionKind,
+				Name: name,
+			}
+
+		} else if strings.HasSuffix(arg, setBodyArgSuffix) {
+			body := strings.TrimSuffix(arg, functionArgSuffix)
+			step = &spec.FunktionStep{
+				Kind: spec.SetBodyKind,
+				Body: body,
+			}
+		} else if strings.HasSuffix(arg, setHeadersArgSuffix) {
+			headersText := strings.TrimSuffix(arg, setHeadersArgSuffix)
+			if len(headersText) == 0 {
+				return steps, fmt.Errorf("Header name and values required after %s", setHeadersArgSuffix)
+			}
+			headers, err := parseHeaders(headersText)
+			if err != nil {
+				return steps, err
+			}
+			step = &spec.FunktionStep{
+				Kind: spec.SetHeadersKind,
+				Headers: headers,
+			}
+		} else {
+			step = &spec.FunktionStep{
+				Kind: spec.EndpointKind,
+				URI: arg,
+			}
+		}
+		if step != nil {
+			steps = append(steps, *step)
+		}
+	}
+	return steps, nil
+}
+func parseHeaders(text string) (map[string]string, error) {
+	m := map[string]string{}
+	kvs := strings.Split(text, ",")
+	for _, kv := range kvs {
+		v := strings.SplitN(kv, "=", 2)
+		if len(v) != 2 {
+			return m, fmt.Errorf("Missing '=' in header `%s`", kv)
+		}
+		m[v[0]] = v[1]
+	}
+	return m, nil
+}
+
+func (p *subscribeCmd) checkConnectorExists(name string) (*v1.ConfigMap, error) {
 	listOpts, err := funktion.CreateConnectorListOptions()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cms := p.kubeclient.ConfigMaps(p.namespace)
 	resources, err := cms.List(*listOpts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for _, resource := range resources.Items {
 		if resource.Name == name {
-			return nil
+			return &resource, nil
 		}
 	}
-	return fmt.Errorf("Connector \"%s\" not found so cannot create this subscription", name)
+	return nil, fmt.Errorf("Connector \"%s\" not found so cannot create this subscription", name)
 }
 
-func (p *subscribeCmd) generateName() (string, error) {
+func (p *subscribeCmd) generateName(steps []spec.FunktionStep) (string, error) {
 	configmaps := p.kubeclient.ConfigMaps(p.namespace)
 	cms, err := configmaps.List(api.ListOptions{})
 	if err != nil {
@@ -195,11 +265,19 @@ func (p *subscribeCmd) generateName() (string, error) {
 	}
 	prefix := "subscription"
 
+	fromUri := ""
+	for _, step := range steps {
+		fromUri = step.URI
+		if len(fromUri) > 0 {
+			break
+		}
+	}
+
 	// lets try generate a subscription name from the scheme
-	if len(p.fromUrl) > 0 {
-		u, err := url.Parse(p.fromUrl)
+	if len(fromUri) > 0 {
+		u, err := url.Parse(fromUri)
 		if err != nil {
-			fmt.Printf("Warning: cannot parse the from URL %s as got %v\n", p.fromUrl, err)
+			fmt.Printf("Warning: cannot parse the from URL %s as got %v\n", fromUri, err)
 		} else {
 			path := strings.Trim(u.Host, "/")
 			prefix = u.Scheme

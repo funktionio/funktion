@@ -162,7 +162,10 @@ func (p *getCmd) subscriptionFlowText(cm *v1.ConfigMap) string {
 		return "No funktion flows"
 	}
 	rule := fc.Flows[0]
-	steps := rule.Steps
+	return stepsText(rule.Steps)
+}
+
+func stepsText(steps []spec.FunktionStep) string {
 	actionMessage := "No steps!"
 	if len(steps) > 0 {
 		var buffer bytes.Buffer
@@ -184,6 +187,7 @@ func (p *getCmd) subscriptionFlowText(cm *v1.ConfigMap) string {
 	}
 	return actionMessage
 }
+
 
 func (p *getCmd) subscriptionPodText(cm *v1.ConfigMap) string {
 	name := cm.Name
