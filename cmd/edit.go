@@ -114,10 +114,6 @@ func (p *editConnectorCmd) run() error {
 	if err != nil {
 		return err
 	}
-	_, err = cms.Update(connector);
-	if err == nil {
-		fmt.Printf("Connector %s updated\n", name)
-	}
 	return err
 }
 
@@ -213,8 +209,8 @@ func (p *editConnectorCmd) editConnector(name string, connector *v1.ConfigMap) e
 		}
 		latestCon.Data[funktion.ApplicationPropertiesProperty] = propText
 		_, err = cms.Update(latestCon)
-		if err != nil {
-			fmt.Printf("Connector %s updated", name)
+		if err == nil {
+			fmt.Printf("Connector %s updated\n", name)
 		}
 		return err
 	}
