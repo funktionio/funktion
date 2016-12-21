@@ -102,6 +102,6 @@ type FunktionStep struct {
 	Name    string   `json:"name,omitempty"`
 	URI     string   `json:"uri,omitempty"`
 	Body    string   `json:"body,omitempty"`
-	Headers map[string]string   `json:"body,omitempty"`
+	Headers map[string]string   `json:"headers,omitempty"`
 }
 

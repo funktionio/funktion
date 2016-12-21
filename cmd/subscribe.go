@@ -32,6 +32,12 @@ import (
 	"github.com/fabric8io/funktion-operator/pkg/spec"
 )
 
+const (
+	functionArgPrefix = "funktion:"
+	setBodyArgPrefix = "setBody:"
+	setHeadersArgPrefix = "setHeaders:"
+)
+
 type subscribeCmd struct {
 	subscriptionName string
 	connectorName    string
@@ -52,7 +58,7 @@ func newSubscribeCmd() *cobra.Command {
 	p := &subscribeCmd{
 	}
 	cmd := &cobra.Command{
-		Use:   "subscribe [flags] [endpointUrl] [function:name] [setBody:content] [setHeaders:foo=bar,xyz=abc]",
+		Use:   "subscribe [flags] [endpointUrl] [function:name] [setBody:content] [setHeaders:foo:bar,xyz:abc]",
 		Short: "Subscribes to the given event stream and then invokes a function or HTTP endpoint",
 		Long:  `This command will create a new Subscription which receives input events and then invokes either a function or HTTP endpoint`,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -170,37 +176,32 @@ func (p *subscribeCmd) run() error {
 	return err
 }
 
-const (
-	functionArgSuffix = "funktion:"
-	setBodyArgSuffix = "setBody:"
-	setHeadersArgSuffix = "setHeaders:"
-)
+
 // parseSteps parses a sequence of arguments as either endpoint URLs, function:name,
 // setBody:content, setHeaders:foo=bar,abc=def
 func parseSteps(args []string) ([]spec.FunktionStep, error) {
 	steps := []spec.FunktionStep{}
 	for _, arg := range args {
 		var step *spec.FunktionStep
-		if strings.HasSuffix(arg, functionArgSuffix) {
-			name := strings.TrimSuffix(arg, functionArgSuffix)
+		if strings.HasPrefix(arg, functionArgPrefix) {
+			name := strings.TrimPrefix(arg, functionArgPrefix)
 			if len(name) == 0 {
-				return steps, fmt.Errorf("Function name required after %s", functionArgSuffix)
+				return steps, fmt.Errorf("Function name required after %s", functionArgPrefix)
 			}
 			step = &spec.FunktionStep{
 				Kind: spec.FunctionKind,
 				Name: name,
 			}
-
-		} else if strings.HasSuffix(arg, setBodyArgSuffix) {
-			body := strings.TrimSuffix(arg, functionArgSuffix)
+		} else if strings.HasPrefix(arg, setBodyArgPrefix) {
+			body := strings.TrimPrefix(arg, setBodyArgPrefix)
 			step = &spec.FunktionStep{
 				Kind: spec.SetBodyKind,
 				Body: body,
 			}
-		} else if strings.HasSuffix(arg, setHeadersArgSuffix) {
-			headersText := strings.TrimSuffix(arg, setHeadersArgSuffix)
+		} else if strings.HasPrefix(arg, setHeadersArgPrefix) {
+			headersText := strings.TrimPrefix(arg, setHeadersArgPrefix)
 			if len(headersText) == 0 {
-				return steps, fmt.Errorf("Header name and values required after %s", setHeadersArgSuffix)
+				return steps, fmt.Errorf("Header name and values required after %s", setHeadersArgPrefix)
 			}
 			headers, err := parseHeaders(headersText)
 			if err != nil {
@@ -226,9 +227,9 @@ func parseHeaders(text string) (map[string]string, error) {
 	m := map[string]string{}
 	kvs := strings.Split(text, ",")
 	for _, kv := range kvs {
-		v := strings.SplitN(kv, "=", 2)
+		v := strings.SplitN(kv, ":", 2)
 		if len(v) != 2 {
-			return m, fmt.Errorf("Missing '=' in header `%s`", kv)
+			return m, fmt.Errorf("Missing ':' in header `%s`", kv)
 		}
 		m[v[0]] = v[1]
 	}
