@@ -58,6 +58,10 @@ const (
 
 	// ConfigMapControllerAnnotation is the annotation for the configmapcontroller
 	ConfigMapControllerAnnotation = "configmap.fabric8.io/update-on-change"
+
+	// Deployment
+	// NameLabel is the name label for Deployments
+	NameLabel = "name"
 )
 
 func makeSubscriptionDeployment(subscription *v1.ConfigMap, connector *v1.ConfigMap, old *v1beta1.Deployment) (*v1beta1.Deployment, error) {
@@ -72,7 +76,8 @@ func makeSubscriptionDeployment(subscription *v1.ConfigMap, connector *v1.Config
 		return nil, fmt.Errorf("Failed to parse Deployment YAML from property `%s` on the Subscription ConfigMap %s. Error: %s", DeploymentYmlProperty, subscription.Name, err)
 	}
 
-	deployment.Name = subscription.Name
+	name := subscription.Name
+	deployment.Name = name
 	if deployment.Annotations == nil {
 		deployment.Annotations = make(map[string]string)
 	}
@@ -147,6 +152,7 @@ func makeSubscriptionDeployment(subscription *v1.ConfigMap, connector *v1.Config
 	if len(deployment.Spec.Template.Spec.Containers[0].Name) == 0 {
 		deployment.Spec.Template.Spec.Containers[0].Name = "connector"
 	}
+	setDeploymentLabel(&deployment, NameLabel, name)
 	return &deployment, nil
 }
 
@@ -162,7 +168,8 @@ func makeFunctionDeployment(function *v1.ConfigMap, runtime *v1.ConfigMap, old *
 		return nil, fmt.Errorf("Failed to parse Deployment YAML from property `%s` on the Runtime ConfigMap %s. Error: %s", DeploymentYmlProperty, runtime.Name, err)
 	}
 
-	deployment.Name = function.Name
+	name := function.Name
+	deployment.Name = name
 	if deployment.Annotations == nil {
 		deployment.Annotations = make(map[string]string)
 	}
@@ -243,9 +250,24 @@ func makeFunctionDeployment(function *v1.ConfigMap, runtime *v1.ConfigMap, old *
 	if len(deployment.Spec.Template.Spec.Containers[0].Name) == 0 {
 		deployment.Spec.Template.Spec.Containers[0].Name = "function"
 	}
+	setDeploymentLabel(&deployment, NameLabel, name)
 	return &deployment, nil
 }
 
+func setDeploymentLabel(deployment *v1beta1.Deployment, key string, value string) {
+	deployment.Labels[key] = value
+	if deployment.Spec.Selector == nil {
+		deployment.Spec.Selector = &v1beta1.LabelSelector{}
+	}
+	if deployment.Spec.Selector.MatchLabels == nil {
+		deployment.Spec.Selector.MatchLabels = map[string]string{}
+	}
+	deployment.Spec.Selector.MatchLabels[key] = value
+	if deployment.Spec.Template.ObjectMeta.Labels == nil {
+		deployment.Spec.Template.ObjectMeta.Labels = map[string]string{}
+	}
+	deployment.Spec.Template.ObjectMeta.Labels[key] = value
+}
 func makeFunctionService(function *v1.ConfigMap, runtime *v1.ConfigMap, old *v1.Service, deployment *v1beta1.Deployment) (*v1.Service, error) {
 	yamlText := runtime.Data[ServiceProperty]
 	if len(yamlText) == 0 {

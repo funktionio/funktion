@@ -56,7 +56,6 @@ func newCreateCmd() *cobra.Command {
 	subscribeCmd.Short = "Creates a Subscription flow"
 
 	cmd.AddCommand(subscribeCmd)
-
 	cmd.AddCommand(newCreateFunctionCmd())
 	return cmd
 }
