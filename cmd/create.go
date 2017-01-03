@@ -280,7 +280,15 @@ func (p *createFunctionCmd) applyFile(fileName string) error {
 			break
 		}
 	}
-	cm, err := p.createFunctionFromSource(name, source, runtime)
+	defaultLabels := map[string]string{}
+	abs, err := filepath.Abs(fileName)
+	if err == nil && len(abs) > 0 {
+		folderName := convertToSafeLabelValue(filepath.Base(filepath.Dir(abs)))
+		if len(folderName) > 0 {
+			defaultLabels[funktion.ProjectLabel] = folderName
+		}
+	}
+	cm, err := p.createFunctionFromSource(name, source, runtime, defaultLabels)
 	if err != nil {
 		return err
 	}
@@ -392,17 +400,24 @@ func (p *createFunctionCmd) createFunction(name string) (*v1.ConfigMap, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.createFunctionFromSource(name, source, runtime)
+	defaultLabels := map[string]string{}
+	return p.createFunctionFromSource(name, source, runtime, defaultLabels)
 }
 
-func (p *createFunctionCmd) createFunctionFromSource(name, source, runtime string) (*v1.ConfigMap, error) {
+func (p *createFunctionCmd) createFunctionFromSource(name, source, runtime string, extraLabels map[string]string) (*v1.ConfigMap, error) {
+	labels := map[string]string{
+		funktion.KindLabel: funktion.FunctionKind,
+		funktion.RuntimeLabel: runtime,
+	}
+	for k, v := range extraLabels {
+		if labels[k] == "" {
+			labels[k] = v
+		}
+	}
 	cm := &v1.ConfigMap{
 		ObjectMeta: v1.ObjectMeta{
 			Name: name,
-			Labels: map[string]string{
-				funktion.KindLabel: funktion.FunctionKind,
-				funktion.RuntimeLabel: runtime,
-			},
+			Labels: labels,
 		},
 		Data: map[string]string{
 			funktion.SourceProperty: source,

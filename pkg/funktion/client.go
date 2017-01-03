@@ -38,6 +38,8 @@ const (
 
 	// RuntimeLabel is the label key used on a ConfigMap to refer to a Runtime
 	RuntimeLabel = "runtime"
+	// ProjectLabel the name of the folder where the source comes from
+	ProjectLabel = "project"
 
 	// ConnectorKind is the value of a Connector fo the KindLabel
 	ConnectorKind = "Connector"

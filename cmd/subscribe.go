@@ -315,7 +315,7 @@ func urlScheme(text string) (string, error) {
 func convertToSafeResourceName(text string) string {
 	var buffer bytes.Buffer
 	lower := strings.ToLower(text)
-	lastCharValid := false;
+	lastCharValid := false
 	for i := 0; i < len(lower); i++ {
 		ch := lower[i]
 		if (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') {
@@ -323,6 +323,30 @@ func convertToSafeResourceName(text string) string {
 			lastCharValid = true
 		} else {
 			if lastCharValid {
+				buffer.WriteString("-")
+			}
+			lastCharValid = false
+		}
+	}
+	return buffer.String()
+}
+// convertToSafeLabelValue converts the given text into a usable kubernetes label value
+// removing any dodgy characters
+func convertToSafeLabelValue(text string) string {
+	var buffer bytes.Buffer
+	l := len(text) - 1
+	lastCharValid := false
+	for i := 0; i <= l; i++ {
+		ch := text[i]
+		valid := (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')
+		if i > 0 && i < l {
+			valid = valid || (ch == '-' || ch == '_' || ch == '.')
+		}
+		if valid {
+			buffer.WriteString(string(ch))
+			lastCharValid = true
+		} else {
+			if lastCharValid && i < l {
 				buffer.WriteString("-")
 			}
 			lastCharValid = false
