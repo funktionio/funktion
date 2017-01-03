@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -97,41 +98,74 @@ func (p *createFunctionCmd) run() error {
 	if err != nil {
 		return err
 	}
-	kubeclient := p.kubeclient
-	cms := kubeclient.ConfigMaps(p.namespace)
-	resources, err := cms.List(*listOpts)
-	if err != nil {
-		return err
-	}
-	p.configMaps = map[string]*v1.ConfigMap{}
-	for _, resource := range resources.Items {
-		p.configMaps[resource.Name] = &resource
-	}
-
-	name := p.nameFromFile(p.file)
-	if len(name) == 0 {
-		name, err = p.generateName()
+	file := p.file
+	if len(file) > 0 {
+		var matches []string
+		if isExistingDir(file) {
+			files, err := ioutil.ReadDir(file)
+			if err != nil {
+				return err
+			}
+			matches = []string{}
+			for _, fi := range files {
+				if !fi.IsDir() {
+					matches = append(matches, filepath.Join(file, fi.Name()))
+				}
+			}
+			fmt.Printf("Found matches %v\n", matches)
+		} else {
+			matches, err = filepath.Glob(file)
+			if err != nil {
+				return fmt.Errorf("Could not parse pattern %s due to %v", file, err)
+			} else if len(matches) == 0 {
+				fmt.Printf("No files exist matching the name: %s\n", file)
+				fmt.Println("Please specify a file name that exists or specify the directory containing functions")
+				return fmt.Errorf("No suitable source file: %s", file)
+			}
+		}
+		for _, file := range matches {
+			err = p.applyFile(file)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		kubeclient := p.kubeclient
+		cms := kubeclient.ConfigMaps(p.namespace)
+		resources, err := cms.List(*listOpts)
 		if err != nil {
 			return err
 		}
-	}
-	update := p.configMaps[name] != nil
-	cm, err := p.createFunction(name)
-	if err != nil {
-		return err
-	}
-	message := "created"
-	if update {
-		_, err = cms.Update(cm);
-		message = "updated"
-	} else {
-		_, err = cms.Create(cm);
-	}
-	if err == nil {
-		fmt.Printf("Function %s %s\n", name, message)
-		if p.watch {
-			p.watchFiles()
+		p.configMaps = map[string]*v1.ConfigMap{}
+		for _, resource := range resources.Items {
+			p.configMaps[resource.Name] = &resource
 		}
+
+		name := p.nameFromFile(file)
+		if len(name) == 0 {
+			name, err = p.generateName()
+			if err != nil {
+				return err
+			}
+		}
+		update := p.configMaps[name] != nil
+		cm, err := p.createFunction(name)
+		if err != nil {
+			return err
+		}
+		message := "created"
+		if update {
+			_, err = cms.Update(cm);
+			message = "updated"
+		} else {
+			_, err = cms.Create(cm);
+		}
+		if err == nil {
+			fmt.Printf("Function %s %s\n", name, message)
+		}
+	}
+	if err == nil && p.watch {
+		p.watchFiles()
 	}
 	return err
 }
@@ -149,9 +183,22 @@ func (p *createFunctionCmd) watchFiles() {
 	}
 	defer watcher.Close()
 
-	err = watcher.Add(files)
-	if err != nil {
-		log.Fatal(err)
+	matches, err := filepath.Glob(files)
+	if err == nil {
+		if len(matches) == 0 {
+			// TODO could we watch for folder?
+			log.Fatal("No files match pattern ", files)
+			return
+		}
+
+	} else {
+		matches = []string{files}
+	}
+	for _, file := range matches {
+		err = watcher.Add(file)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	for {
@@ -160,14 +207,16 @@ func (p *createFunctionCmd) watchFiles() {
 			if event.Op & fsnotify.Rename == fsnotify.Rename {
 				// if a file is renamed (e.g. IDE may do that) we no longer get any more events
 				// so lets add the files again to be sure
-				err = watcher.Add(files)
-				if err != nil {
-					log.Fatal(err)
+				if (isExistingFile(event.Name)) {
+					err = watcher.Add(event.Name)
+					if err != nil {
+						fmt.Printf("Failed to watch file %s due to %v\n", event.Name, err)
+					}
 				}
 			}
-			err = p.updatedFile(event.Name)
+			err = p.applyFile(event.Name)
 			if err != nil {
-				log.Fatal(err)
+				fmt.Printf("Failed to apply function file %s due to %v\n", event.Name, err)
 			}
 
 		case err := <-watcher.Errors:
@@ -176,10 +225,36 @@ func (p *createFunctionCmd) watchFiles() {
 	}
 }
 
-func (p *createFunctionCmd) updatedFile(fileName string) error {
-	source, err := loadFileSource(fileName)
+func isExistingFile(name string) bool {
+	s, err := os.Stat(name)
 	if err != nil {
-		return err
+		return false
+	}
+	return s.Mode().IsRegular()
+}
+
+func isExistingDir(name string) bool {
+	s, err := os.Stat(name)
+	if err != nil {
+		return false
+	}
+	return s.Mode().IsDir()
+}
+
+func (p *createFunctionCmd) applyFile(fileName string) error {
+	if !isExistingFile(fileName) {
+		return nil
+	}
+	source, err := loadFileSource(fileName)
+	if err != nil || len(source) == 0 {
+		// ignore errors or blank source
+		return nil
+	}
+	// TODO lets figure out the runtime from the file extension and the installed runtimes
+	ext := filepath.Ext(fileName)
+	if ext != ".js" {
+		fmt.Printf("Ignoring invalid file extension %s for file %s\n", ext, fileName)
+		return nil
 	}
 	listOpts, err := funktion.CreateFunctionListOptions()
 	if err != nil {
@@ -241,7 +316,6 @@ func (p *createFunctionCmd) nameFromFile(fileName string) string {
 	return name
 }
 
-
 func (p *createFunctionCmd) generateName() (string, error) {
 	prefix := "function"
 	counter := 1
@@ -300,9 +374,6 @@ func loadFileSource(fileName string) (string, error) {
 		return "", err
 	}
 	source := string(data)
-	if len(source) == 0 {
-		return "", fmt.Errorf("The file %s is empty!", fileName)
-	}
 	return source, nil
 }
 

@@ -6,6 +6,7 @@ module.exports = function(context, callback) {
   callback(200, JSON.stringify(body));
 };
 
+//
 function countWords(text) {
   var words = null;
   if (text) {
