@@ -17,10 +17,13 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
+	"path/filepath"
 	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/fabric8io/funktion-operator/pkg/funktion"
+	"github.com/fsnotify/fsnotify"
 
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api/v1"
@@ -34,10 +37,11 @@ type createFunctionCmd struct {
 	namespace      string
 	name           string
 	runtime        string
-	source           string
+	source         string
 	file           string
+	watch          bool
 
-	configMaps    map[string]*v1.ConfigMap
+	configMaps     map[string]*v1.ConfigMap
 }
 
 func init() {
@@ -84,6 +88,7 @@ func newCreateFunctionCmd() *cobra.Command {
 	f.StringVarP(&p.runtime, "runtime", "r", "nodejs", "the runtime to use. e.g. 'nodejs'")
 	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
 	f.StringVar(&p.namespace, "namespace", "", "the namespace to query")
+	f.BoolVarP(&p.watch, "watch", "w", false, "whether to keep watching the files for changes to the function source code")
 	return cmd
 }
 
@@ -103,15 +108,15 @@ func (p *createFunctionCmd) run() error {
 		p.configMaps[resource.Name] = &resource
 	}
 
-	name := p.name
+	name := p.nameFromFile(p.file)
 	if len(name) == 0 {
 		name, err = p.generateName()
 		if err != nil {
 			return err
 		}
 	}
-        update := p.configMaps[name] != nil
-        cm, err := p.createFunction(name)
+	update := p.configMaps[name] != nil
+	cm, err := p.createFunction(name)
 	if err != nil {
 		return err
 	}
@@ -124,9 +129,118 @@ func (p *createFunctionCmd) run() error {
 	}
 	if err == nil {
 		fmt.Printf("Function %s %s\n", name, message)
+		if p.watch {
+			p.watchFiles()
+		}
 	}
 	return err
 }
+
+func (p *createFunctionCmd) watchFiles() {
+	files := p.file
+	if len(files) == 0 {
+		return
+	}
+	fmt.Println("Watching files: ", files)
+	fmt.Println("Please press Ctrl-C to terminate")
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+
+	err = watcher.Add(files)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for {
+		select {
+		case event := <-watcher.Events:
+			if event.Op & fsnotify.Rename == fsnotify.Rename {
+				// if a file is renamed (e.g. IDE may do that) we no longer get any more events
+				// so lets add the files again to be sure
+				err = watcher.Add(files)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+			err = p.updatedFile(event.Name)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+		case err := <-watcher.Errors:
+			log.Println("error:", err)
+		}
+	}
+}
+
+func (p *createFunctionCmd) updatedFile(fileName string) error {
+	source, err := loadFileSource(fileName)
+	if err != nil {
+		return err
+	}
+	listOpts, err := funktion.CreateFunctionListOptions()
+	if err != nil {
+		return err
+	}
+	name := p.nameFromFile(fileName)
+	if len(name) == 0 {
+		return fmt.Errorf("Could not generate a function name!")
+	}
+
+	kubeclient := p.kubeclient
+	cms := kubeclient.ConfigMaps(p.namespace)
+	resources, err := cms.List(*listOpts)
+	if err != nil {
+		return err
+	}
+	var old *v1.ConfigMap = nil
+	for _, resource := range resources.Items {
+		if resource.Name == name {
+			old = &resource
+			break
+		}
+	}
+	cm, err := p.createFunctionFromSource(name, source)
+	if err != nil {
+		return err
+	}
+	message := "created"
+	if old != nil {
+		oldSource := old.Data[funktion.SourceProperty]
+		if (source == oldSource) {
+			// source not changed so lets not update!
+			return nil
+		}
+		_, err = cms.Update(cm);
+		message = "updated"
+	} else {
+		_, err = cms.Create(cm);
+	}
+	if err == nil {
+		log.Println("Function", name, message)
+	}
+	return err
+}
+
+func (p *createFunctionCmd) nameFromFile(fileName string) string {
+	if len(p.name) != 0 {
+		return p.name
+	}
+	if len(fileName) == 0 {
+		return ""
+	}
+	_, name := filepath.Split(fileName)
+	ext := filepath.Ext(name)
+	l := len(ext)
+	if l > 0 {
+		return name[0:len(name) - l]
+	}
+	return name
+}
+
 
 func (p *createFunctionCmd) generateName() (string, error) {
 	prefix := "function"
@@ -141,6 +255,22 @@ func (p *createFunctionCmd) generateName() (string, error) {
 }
 
 func (p *createFunctionCmd) createFunction(name string) (*v1.ConfigMap, error) {
+	source := p.source
+	if len(source) == 0 {
+		file := p.file
+		if len(file) == 0 {
+			return nil, fmt.Errorf("No function source code or file name supplied! You must specify either -s or -f flags")
+		}
+		var err error
+		source, err = loadFileSource(file)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return p.createFunctionFromSource(name, source)
+}
+
+func (p *createFunctionCmd) createFunctionFromSource(name string, source string) (*v1.ConfigMap, error) {
 	runtime := p.runtime
 	if len(runtime) == 0 {
 		return nil, fmt.Errorf("No runtime supplied! Please pass `-n nodejs` or some other valid runtime")
@@ -148,14 +278,6 @@ func (p *createFunctionCmd) createFunction(name string) (*v1.ConfigMap, error) {
 	err := p.checkRuntimeExists(runtime)
 	if err != nil {
 		return nil, err
-	}
-	source := p.source
-	if len(source) == 0 {
-		file := p.file
-		if len(file) == 0 {
-			return nil, fmt.Errorf("No function source code or file name supplied! You must specify either -s or -f flags")
-		}
-		source, err = loadFileSource(file)
 	}
 	cm := &v1.ConfigMap{
 		ObjectMeta: v1.ObjectMeta{

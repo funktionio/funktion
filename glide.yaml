@@ -20,3 +20,4 @@ import:
 - package: github.com/spf13/pflag
 - package: github.com/mitchellh/mapstructure
 - package: github.com/magiconair/properties
+- package: github.com/fsnotify/fsnotify
