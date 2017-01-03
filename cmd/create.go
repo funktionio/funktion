@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/fabric8io/funktion-operator/pkg/funktion"
@@ -112,7 +113,6 @@ func (p *createFunctionCmd) run() error {
 					matches = append(matches, filepath.Join(file, fi.Name()))
 				}
 			}
-			fmt.Printf("Found matches %v\n", matches)
 		} else {
 			matches, err = filepath.Glob(file)
 			if err != nil {
@@ -241,6 +241,7 @@ func isExistingDir(name string) bool {
 	return s.Mode().IsDir()
 }
 
+
 func (p *createFunctionCmd) applyFile(fileName string) error {
 	if !isExistingFile(fileName) {
 		return nil
@@ -250,10 +251,11 @@ func (p *createFunctionCmd) applyFile(fileName string) error {
 		// ignore errors or blank source
 		return nil
 	}
-	// TODO lets figure out the runtime from the file extension and the installed runtimes
-	ext := filepath.Ext(fileName)
-	if ext != ".js" {
-		fmt.Printf("Ignoring invalid file extension %s for file %s\n", ext, fileName)
+	runtime, err := p.findRuntimeFromFileName(fileName)
+	if err != nil {
+		fmt.Printf("Failed to find runtime for file %s due to %v", fileName, err)
+	}
+	if len(runtime) == 0 {
 		return nil
 	}
 	listOpts, err := funktion.CreateFunctionListOptions()
@@ -278,7 +280,7 @@ func (p *createFunctionCmd) applyFile(fileName string) error {
 			break
 		}
 	}
-	cm, err := p.createFunctionFromSource(name, source)
+	cm, err := p.createFunctionFromSource(name, source, runtime)
 	if err != nil {
 		return err
 	}
@@ -300,6 +302,47 @@ func (p *createFunctionCmd) applyFile(fileName string) error {
 	return err
 }
 
+// findRuntimeFromFileName returns the runtime to use for the given file name
+// or an empty string if the file does not map to a runtime function source file
+func (p *createFunctionCmd) findRuntimeFromFileName(fileName string) (string, error) {
+	// TODO we may want to use a cache and watch the runtimes to minimise API churn here on runtimes...
+	listOpts, err := funktion.CreateRuntimeListOptions()
+	if err != nil {
+		return "", err
+	}
+	kubeclient := p.kubeclient
+	cms := kubeclient.ConfigMaps(p.namespace)
+	resources, err := cms.List(*listOpts)
+	if err != nil {
+		return "", err
+	}
+	ext := strings.TrimPrefix(filepath.Ext(fileName), ".")
+	hasNodeJs := false
+	for _, resource := range resources.Items {
+		ann := resource.Annotations
+		if ann != nil {
+			extensions := ann[funktion.FileExtensionsAnnotation]
+			if len(extensions) > 0 {
+				values := strings.Split(extensions, ",")
+				for _, value := range values {
+					if ext == value {
+						return resource.Name, nil
+					}
+				}
+			}
+		}
+		// support for legacy runtimes with no annotations
+		// TODO remove this code once new annotations are present!
+		if resource.Name == "nodejs" {
+			hasNodeJs = true
+		}
+	}
+	if hasNodeJs && ext == "js" {
+		return "nodejs", nil
+	}
+	return "", nil
+}
+
 func (p *createFunctionCmd) nameFromFile(fileName string) string {
 	if len(p.name) != 0 {
 		return p.name
@@ -311,9 +354,9 @@ func (p *createFunctionCmd) nameFromFile(fileName string) string {
 	ext := filepath.Ext(name)
 	l := len(ext)
 	if l > 0 {
-		return name[0:len(name) - l]
+		name = name[0:len(name) - l]
 	}
-	return name
+	return convertToSafeResourceName(name)
 }
 
 func (p *createFunctionCmd) generateName() (string, error) {
@@ -341,10 +384,6 @@ func (p *createFunctionCmd) createFunction(name string) (*v1.ConfigMap, error) {
 			return nil, err
 		}
 	}
-	return p.createFunctionFromSource(name, source)
-}
-
-func (p *createFunctionCmd) createFunctionFromSource(name string, source string) (*v1.ConfigMap, error) {
 	runtime := p.runtime
 	if len(runtime) == 0 {
 		return nil, fmt.Errorf("No runtime supplied! Please pass `-n nodejs` or some other valid runtime")
@@ -353,6 +392,10 @@ func (p *createFunctionCmd) createFunctionFromSource(name string, source string)
 	if err != nil {
 		return nil, err
 	}
+	return p.createFunctionFromSource(name, source, runtime)
+}
+
+func (p *createFunctionCmd) createFunctionFromSource(name, source, runtime string) (*v1.ConfigMap, error) {
 	cm := &v1.ConfigMap{
 		ObjectMeta: v1.ObjectMeta{
 			Name: name,

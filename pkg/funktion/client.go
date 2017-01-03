@@ -52,6 +52,11 @@ const (
 	// ServiceKind is the value of a ConneServicector fo the KindLabel
 	ServiceKind = "Service"
 
+	// Runtime
+
+	// FileExtensionsAnnotation a comma separated list of file extensions (without the dot) which are handled by this runtime
+	FileExtensionsAnnotation = "funktion.fabric8.io/fileExtensions"
+
 	resyncPeriod = 30 * time.Second
 )
 
