@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/fabric8io/funktion/master/docs/images/icon.png" width="24" height="24"/>&nbsp; Funktion CLI
+# <img src="https://raw.githubusercontent.com/fabric8io/funktion/master/docs/images/icon.png" width="24" height="24"/>&nbsp; Funktion
 
 **Funktion** is an open source event driven lambda style programming model on top of [Kubernetes](http://kubernetes.io). This project provides a command line tool for working with `Funktion`
 
