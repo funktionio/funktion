@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fabric8io/funktion-operator/cmd"
+	"github.com/funktionio/funktion/cmd"
 )
 
 func Main() int {

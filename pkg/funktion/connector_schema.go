@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/fabric8io/funktion-operator/pkg/spec"
+	"github.com/funktionio/funktion/pkg/spec"
 	"github.com/ghodss/yaml"
 	"unicode"
 	"strings"

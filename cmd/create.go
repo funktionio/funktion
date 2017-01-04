@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/fabric8io/funktion-operator/pkg/funktion"
+	"github.com/funktionio/funktion/pkg/funktion"
 	"github.com/fsnotify/fsnotify"
 
 	"k8s.io/client-go/1.5/kubernetes"

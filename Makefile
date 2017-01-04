@@ -8,13 +8,13 @@ BUILD_DIR ?= ./out
 NAME = funktion-operator
 
 funktion-operator: $(shell find . -type f -name '*.go')
-	go build -o funktion github.com/fabric8io/funktion-operator/cmd/operator
+	go build -o funktion github.com/funktionio/funktion/cmd/operator
 
 funktion-linux-static: $(shell find . -type f -name '*.go')
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
 		go build -o ./out/funktion-operator-linux-amd64 \
 		-ldflags "-s" -a -installsuffix cgo \
-		github.com/fabric8io/funktion-operator/cmd/operator
+		github.com/funktionio/funktion/cmd/operator
 
 check: .check_license
 
@@ -26,7 +26,7 @@ image: check funktion-linux-static
 	docker build -t $(REPO):$(TAG) .
 
 test:
-	CGO_ENABLED=0 $(GO) test github.com/fabric8io/funktion-operator/cmd github.com/fabric8io/funktion-operator/pkg/funktion
+	CGO_ENABLED=0 $(GO) test github.com/funktionio/funktion/cmd github.com/funktionio/funktion/pkg/funktion
 
 e2e:
 	go test -v ./test/e2e/ --kubeconfig "$(HOME)/.kube/config" --operator-image=fabric8io/funktion-operator
@@ -47,16 +47,16 @@ out/$(NAME): out/$(NAME)-$(GOOS)-$(GOARCH)
 	cp $(BUILD_DIR)/$(NAME)-$(GOOS)-$(GOARCH) $(BUILD_DIR)/$(NAME)
 
 out/$(NAME)-darwin-amd64: gopath $(shell $(GOFILES)) version/VERSION
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build $(BUILDFLAGS) -o $(BUILD_DIR)/$(NAME)-darwin-amd64 github.com/fabric8io/funktion-operator/cmd/operator
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build $(BUILDFLAGS) -o $(BUILD_DIR)/$(NAME)-darwin-amd64 github.com/funktionio/funktion/cmd/operator
 
 out/$(NAME)-linux-amd64: gopath $(shell $(GOFILES)) version/VERSION
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build $(BUILDFLAGS) -o $(BUILD_DIR)/$(NAME)-linux-amd64 github.com/fabric8io/funktion-operator/cmd/operator
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build $(BUILDFLAGS) -o $(BUILD_DIR)/$(NAME)-linux-amd64 github.com/funktionio/funktion/cmd/operator
 
 out/$(NAME)-windows-amd64.exe: gopath $(shell $(GOFILES)) version/VERSION
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build $(BUILDFLAGS) -o $(BUILD_DIR)/$(NAME)-windows-amd64.exe github.com/fabric8io/funktion-operator/cmd/operator
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build $(BUILDFLAGS) -o $(BUILD_DIR)/$(NAME)-windows-amd64.exe github.com/funktionio/funktion/cmd/operator
 
 out/$(NAME)-linux-arm: gopath $(shell $(GOFILES)) version/VERSION
-	CGO_ENABLED=0 GOARCH=arm GOOS=linux go build $(BUILDFLAGS) -o $(BUILD_DIR)/$(NAME)-linux-arm github.com/fabric8io/funktion-operator/cmd/operator
+	CGO_ENABLED=0 GOARCH=arm GOOS=linux go build $(BUILDFLAGS) -o $(BUILD_DIR)/$(NAME)-linux-arm github.com/funktionio/funktion/cmd/operator
 
 .PHONY: release
 release: clean bootstrap test cross

@@ -20,7 +20,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/fabric8io/funktion-operator/pkg/spec"
+	"github.com/funktionio/funktion/pkg/spec"
 )
 
 const (

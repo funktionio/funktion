@@ -21,7 +21,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/fabric8io/funktion-operator/pkg/funktion"
+	"github.com/funktionio/funktion/pkg/funktion"
 
 	"github.com/go-kit/kit/log"
 	flag "github.com/spf13/pflag"

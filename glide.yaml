@@ -1,4 +1,4 @@
-package: github.com/fabric8io/funktion-operator
+package: github.com/funktionio/funktion
 import:
 - package: github.com/go-kit/kit
   version: ^0.3.0

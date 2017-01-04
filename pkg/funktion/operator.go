@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fabric8io/funktion-operator/pkg/analytics"
-	"github.com/fabric8io/funktion-operator/pkg/queue"
+	"github.com/funktionio/funktion/pkg/analytics"
+	"github.com/funktionio/funktion/pkg/queue"
 
 	"strings"
 

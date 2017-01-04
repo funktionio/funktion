@@ -20,7 +20,7 @@ import (
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api"
 	"k8s.io/client-go/1.5/tools/clientcmd"
-	"github.com/fabric8io/funktion-operator/pkg/funktion"
+	"github.com/funktionio/funktion/pkg/funktion"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +35,7 @@ var RootCmd = &cobra.Command{
 	Use:   "funktion",
 	Short: "funktion is a Function as a Service (or Lambda) style programming model for Kubenretes",
 	Long: `Funktion lets you develop complex applications using simple functions and then bind those functions to any event source and run and scale your functions on top of kubernetes.
-For more documentation please see: https://github.com/fabric8io/funktion-operator`,
+For more documentation please see: https://github.com/funktionio/funktion`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			cmd.Help()

@@ -26,8 +26,8 @@ import (
 	"k8s.io/client-go/1.5/pkg/api/v1"
 	"k8s.io/client-go/1.5/pkg/apis/extensions/v1beta1"
 
-	"github.com/fabric8io/funktion-operator/pkg/funktion"
-	"github.com/fabric8io/funktion-operator/pkg/spec"
+	"github.com/funktionio/funktion/pkg/funktion"
+	"github.com/funktionio/funktion/pkg/spec"
 )
 
 type getCmd struct {

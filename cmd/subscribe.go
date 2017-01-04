@@ -28,8 +28,8 @@ import (
 	"k8s.io/client-go/1.5/pkg/api"
 	"k8s.io/client-go/1.5/pkg/api/v1"
 
-	"github.com/fabric8io/funktion-operator/pkg/funktion"
-	"github.com/fabric8io/funktion-operator/pkg/spec"
+	"github.com/funktionio/funktion/pkg/funktion"
+	"github.com/funktionio/funktion/pkg/spec"
 )
 
 const (

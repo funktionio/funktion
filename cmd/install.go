@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/fabric8io/funktion-operator/pkg/funktion"
+	"github.com/funktionio/funktion/pkg/funktion"
 	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/1.5/kubernetes"

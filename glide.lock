@@ -1,8 +1,8 @@
-hash: 91dfe658208a05514fa94b964c95e7f32a53689b79e472a983292a590b09ece7
-updated: 2016-12-30T10:25:33.146516515Z
+hash: a36d930f2da564852044e4b360850b3cd9679f892d6749abd14e245a00b33c5c
+updated: 2017-01-04T18:47:42.181080875Z
 imports:
 - name: cloud.google.com/go
-  version: 4e436992a513aa1dec28f8adda5c8173724d493e
+  version: 09686df77f324000b4d1f05e0ca270cb1ba6060b
   subpackages:
   - compute/metadata
   - internal
@@ -27,7 +27,7 @@ imports:
   subpackages:
   - spew
 - name: github.com/docker/distribution
-  version: 2d500932f2c7f032d2abc51f2ef940871d541319
+  version: 76f514b618dc815f0dcf56f52988e7f2fa735f7a
   subpackages:
   - reference
   - digest
@@ -36,6 +36,12 @@ imports:
   subpackages:
   - swagger
   - log
+- name: github.com/fabric8io/funktion-operator
+  version: 6045497a42e57dee201ed5c8b13272a30221fe7d
+  subpackages:
+  - pkg/analytics
+  - pkg/queue
+  - pkg/spec
 - name: github.com/fsnotify/fsnotify
   version: fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197
 - name: github.com/ghodss/yaml
@@ -47,11 +53,11 @@ imports:
 - name: github.com/go-logfmt/logfmt
   version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
 - name: github.com/go-openapi/jsonpointer
-  version: 8d96a2dc61536b690bd36b2e9df0b3c0b62825b2
+  version: 779f45308c19820f1a69e9a4cd965f496e0da10f
 - name: github.com/go-openapi/jsonreference
   version: 36d33bfe519efae5632669801b180bf1a245da3b
 - name: github.com/go-openapi/spec
-  version: 34b5ffff717ab4535aef76e3dd90818bddde571b
+  version: 3a0434164aa36744c7ba29b822d36894a1e5ec96
 - name: github.com/go-openapi/swag
   version: 96d7b9ebd181a1735a1c9ac87914f2b32fbf56c9
 - name: github.com/go-stack/stack
@@ -114,7 +120,7 @@ imports:
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 8fd7f25955530b92e73e9e1932a41b522b22ccd9
+  version: 69d4b8aa71caaaa75c3dfc11211d1be495abec7c
   subpackages:
   - context
   - http2
@@ -136,7 +142,7 @@ imports:
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: a49bea13b776691cb1b49873e5d8df96ec74831a
+  version: fd889fe3a20f4878f5f47672fd3ca5b86db005e2
   subpackages:
   - unicode/norm
   - width
