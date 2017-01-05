@@ -1,18 +1,18 @@
-build: check funktion-operator
+build: check funktion
 
 VERSION ?= $(shell cat version/VERSION)
-REPO = fabric8io/funktion-operator
+REPO = funktionio/funktion
 TAG = latest
 GO := GO15VENDOREXPERIMENT=1 go
 BUILD_DIR ?= ./out
-NAME = funktion-operator
+NAME = funktion
 
-funktion-operator: $(shell find . -type f -name '*.go')
+funktion: $(shell find . -type f -name '*.go')
 	go build -o funktion github.com/funktionio/funktion/cmd/operator
 
 funktion-linux-static: $(shell find . -type f -name '*.go')
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
-		go build -o ./out/funktion-operator-linux-amd64 \
+		go build -o ./out/funktion-linux-amd64 \
 		-ldflags "-s" -a -installsuffix cgo \
 		github.com/funktionio/funktion/cmd/operator
 
@@ -29,13 +29,13 @@ test:
 	CGO_ENABLED=0 $(GO) test github.com/funktionio/funktion/cmd github.com/funktionio/funktion/pkg/funktion
 
 e2e:
-	go test -v ./test/e2e/ --kubeconfig "$(HOME)/.kube/config" --operator-image=fabric8io/funktion-operator
+	go test -v ./test/e2e/ --kubeconfig "$(HOME)/.kube/config" --operator-image=funktion/funktion
 
 clean:
-	rm -rf funktion-operator funktion-linux-static .check_license release $(BUILD_DIR)
+	rm -rf funktion funktion-linux-static .check_license release $(BUILD_DIR)
 
 clean-e2e:
-	kubectl delete namespace funktion-operator-e2e-tests
+	kubectl delete namespace funktion-e2e-tests
 
 bootstrap:
 	$(GO) get -u github.com/Masterminds/glide
@@ -64,7 +64,7 @@ release: clean bootstrap test cross
 	cp out/$(NAME)-*-amd64* release
 	cp out/$(NAME)-*-arm* release
 	gh-release checksums sha256
-	gh-release create fabric8io/$(NAME) $(VERSION) master v$(VERSION)
+	gh-release create funktionio/$(NAME) $(VERSION) master v$(VERSION)
 
 .PHONY: cross
 cross: out/$(NAME)-linux-amd64 out/$(NAME)-darwin-amd64 out/$(NAME)-windows-amd64.exe out/$(NAME)-linux-arm

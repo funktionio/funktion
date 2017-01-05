@@ -1,8 +1,8 @@
 hash: a36d930f2da564852044e4b360850b3cd9679f892d6749abd14e245a00b33c5c
-updated: 2017-01-04T18:47:42.181080875Z
+updated: 2017-01-05T08:34:28.443692716Z
 imports:
 - name: cloud.google.com/go
-  version: 09686df77f324000b4d1f05e0ca270cb1ba6060b
+  version: 641b1469e744485a8e6235bffc3b7bf366758a85
   subpackages:
   - compute/metadata
   - internal
@@ -36,12 +36,6 @@ imports:
   subpackages:
   - swagger
   - log
-- name: github.com/fabric8io/funktion-operator
-  version: 6045497a42e57dee201ed5c8b13272a30221fe7d
-  subpackages:
-  - pkg/analytics
-  - pkg/queue
-  - pkg/spec
 - name: github.com/fsnotify/fsnotify
   version: fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197
 - name: github.com/ghodss/yaml
@@ -116,7 +110,7 @@ imports:
   subpackages:
   - codec
 - name: golang.org/x/crypto
-  version: f6b343c37ca80bfa8ea539da67a0b621f84fab1d
+  version: 5b4074c2c416448b5d06e287167144493aabda43
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net

@@ -5,7 +5,7 @@ goNode{
   dockerNode{
     def v = goRelease{
       githubOrganisation = 'funktionio'
-      dockerOrganisation = 'fabric8'
+      dockerOrganisation = 'funktion'
       project = 'funktion'
     }
   }
@@ -13,7 +13,7 @@ goNode{
 
 def updateDownstreamDependencies(v) {
   pushPomPropertyChangePR {
-    propertyName = 'funktion.version'
+    propertyName = 'funktion.cli.version'
     projects = [
             'fabric8io/fabric8-platform'
     ]
