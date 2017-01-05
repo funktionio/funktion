@@ -13,7 +13,7 @@ goNode{
 
 def updateDownstreamDependencies(v) {
   pushPomPropertyChangePR {
-    propertyName = 'funktion.cli.version'
+    propertyName = 'funktion.version'
     projects = [
             'fabric8io/fabric8-platform'
     ]
