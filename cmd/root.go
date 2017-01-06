@@ -92,7 +92,7 @@ func listOptsForKind(kind string) (string, *api.ListOptions, error) {
 	case "r", "runtime", "runtimes":
 		listOpts, err := funktion.CreateRuntimeListOptions()
 		return runtimeKind, listOpts, err
-	case "f", "function", "functions", "funktion", "funktions":
+	case "f", "fn", "function", "functions", "funktion", "funktions":
 		listOpts, err := funktion.CreateFunctionListOptions()
 		return functionKind, listOpts, err
 	default:

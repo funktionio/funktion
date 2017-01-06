@@ -61,6 +61,8 @@ const (
 	DeploymentDebugProperty = "deploymentDebug"
 	// ServiceProperty is the data key for a Runtime's Service
 	ServiceProperty = "service"
+	// DebugPortProperty is the data key for a Runtime's debug port
+	DebugPortProperty = "debugPort"
 
 	// ConfigMapControllerAnnotation is the annotation for the configmapcontroller
 	ConfigMapControllerAnnotation = "configmap.fabric8.io/update-on-change"
