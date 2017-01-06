@@ -1,5 +1,5 @@
-hash: a36d930f2da564852044e4b360850b3cd9679f892d6749abd14e245a00b33c5c
-updated: 2017-01-05T08:34:28.443692716Z
+hash: 9879602b6120f2a2b47fa84c635e0f4eeeb9137765ac7a415b4c0749a8b36bc3
+updated: 2017-01-06T17:20:39.156391257Z
 imports:
 - name: cloud.google.com/go
   version: 641b1469e744485a8e6235bffc3b7bf366758a85
@@ -27,7 +27,7 @@ imports:
   subpackages:
   - spew
 - name: github.com/docker/distribution
-  version: 76f514b618dc815f0dcf56f52988e7f2fa735f7a
+  version: 534b155cc89a8787a192dd95bf293e4dde19335d
   subpackages:
   - reference
   - digest
@@ -83,6 +83,8 @@ imports:
   version: 14b04e0594ef6a9fd943363b135656f0ec8c9d0e
 - name: github.com/juju/ratelimit
   version: 77ed1c8a01217656d2080ad51981f6e99adaa177
+- name: github.com/kardianos/osext
+  version: c2c54e542fb797ad986b31721e1baedf214ca413
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
 - name: github.com/magiconair/properties
@@ -114,7 +116,7 @@ imports:
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 69d4b8aa71caaaa75c3dfc11211d1be495abec7c
+  version: 905989bd20b7c354fd28a61074eed1c8f49ebc89
   subpackages:
   - context
   - http2
@@ -136,11 +138,13 @@ imports:
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: fd889fe3a20f4878f5f47672fd3ca5b86db005e2
+  version: 44f4f658a783b0cee41fe0a23b8fc91d9c120558
   subpackages:
+  - secure/bidirule
   - unicode/norm
   - width
   - transform
+  - unicode/bidi
 - name: google.golang.org/appengine
   version: 08a149cfaee099e6ce4be01c0113a78c85ee1dee
   subpackages:
@@ -154,7 +158,7 @@ imports:
   - internal/log
   - internal/remote_api
 - name: google.golang.org/grpc
-  version: c8105071640ef29fce843ed96983e864bb18eb0e
+  version: 85497e2c516cd289bce5551b840ee27c2a0d6878
   subpackages:
   - codes
   - credentials
@@ -186,6 +190,7 @@ imports:
   - 1.5/pkg/watch
   - 1.5/tools/cache
   - 1.5/pkg/api/errors
+  - 1.5/pkg/conversion
   - 1.5/pkg/api/unversioned
   - 1.5/discovery
   - 1.5/kubernetes/typed/apps/v1alpha1
@@ -217,7 +222,6 @@ imports:
   - 1.5/pkg/api/meta/metatypes
   - 1.5/pkg/api/resource
   - 1.5/pkg/auth/user
-  - 1.5/pkg/conversion
   - 1.5/pkg/fields
   - 1.5/pkg/runtime/serializer
   - 1.5/pkg/selection
@@ -253,6 +257,7 @@ imports:
   - 1.5/pkg/apis/certificates
   - 1.5/pkg/apis/policy
   - 1.5/pkg/util/clock
+  - 1.5/pkg/third_party/forked/golang/reflect
   - 1.5/pkg/genericapiserver/openapi/common
   - 1.5/pkg/apis/apps/v1alpha1
   - 1.5/pkg/apis/authorization/v1beta1
@@ -273,7 +278,6 @@ imports:
   - 1.5/pkg/util/integer
   - 1.5/plugin/pkg/client/auth/gcp
   - 1.5/plugin/pkg/client/auth/oidc
-  - 1.5/pkg/third_party/forked/golang/reflect
   - 1.5/pkg/runtime/serializer/json
   - 1.5/pkg/runtime/serializer/protobuf
   - 1.5/pkg/runtime/serializer/recognizer
@@ -281,4 +285,8 @@ imports:
   - 1.5/tools/clientcmd/api/v1
   - 1.5/pkg/util/framer
   - 1.5/pkg/util/yaml
+- name: k8s.io/kubernetes
+  version: 9ce93ed50a7822d0fecd167211942cc18e6d965a
+  subpackages:
+  - pkg/util/homedir
 devImports: []
