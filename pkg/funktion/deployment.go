@@ -16,6 +16,7 @@ package funktion
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ghodss/yaml"
 	"k8s.io/client-go/1.5/pkg/api/v1"
@@ -46,6 +47,9 @@ const (
 
 	// SourceProperty is the data key for the source code in a Function ConfigMap
 	SourceProperty = "source"
+	// DebugProperty is the data key for whether to enable debugging in a Function ConfigMap
+	DebugProperty = "debug"
+
 	// ExposeLabel is the label key to expose services
 	ExposeLabel = "expose"
 
@@ -53,6 +57,8 @@ const (
 
 	// DeploymentProperty is the data key for a Runtime's Deployment
 	DeploymentProperty = "deployment"
+	// DeploymentDebugProperty is the data key for a Runtime's Debug Deployment
+	DeploymentDebugProperty = "deploymentDebug"
 	// ServiceProperty is the data key for a Runtime's Service
 	ServiceProperty = "service"
 
@@ -158,6 +164,13 @@ func makeSubscriptionDeployment(subscription *v1.ConfigMap, connector *v1.Config
 
 func makeFunctionDeployment(function *v1.ConfigMap, runtime *v1.ConfigMap, old *v1beta1.Deployment) (*v1beta1.Deployment, error) {
 	deployYaml := runtime.Data[DeploymentProperty]
+	debugFlag := function.Data[DebugProperty]
+	if strings.ToLower(debugFlag) == "true" {
+		deployYaml = runtime.Data[DeploymentDebugProperty]
+		if len(deployYaml) == 0 {
+			return nil, fmt.Errorf("No property `%s` on the Runtime ConfigMap %s", DeploymentDebugProperty, runtime.Name)
+		}
+	}
 	if len(deployYaml) == 0 {
 		return nil, fmt.Errorf("No property `%s` on the Runtime ConfigMap %s", DeploymentProperty, runtime.Name)
 	}
@@ -232,6 +245,10 @@ func makeFunctionDeployment(function *v1.ConfigMap, runtime *v1.ConfigMap, old *
 		})
 	}
 
+	mountPath := runtime.Data[SourceMountPathProperty]
+	if len(mountPath) == 0 {
+		mountPath = "/funktion"
+	}
 	for i, container := range podSpec.Containers {
 		foundVolumeMount := false
 		for _, volumeMount := range container.VolumeMounts {
@@ -242,7 +259,7 @@ func makeFunctionDeployment(function *v1.ConfigMap, runtime *v1.ConfigMap, old *
 		if !foundVolumeMount {
 			podSpec.Containers[i].VolumeMounts = append(container.VolumeMounts, v1.VolumeMount{
 				Name:      "source",
-				MountPath: "/funktion",
+				MountPath: mountPath,
 				ReadOnly:  true,
 			})
 		}

@@ -56,8 +56,11 @@ const (
 
 	// Runtime
 
-	// FileExtensionsAnnotation a comma separated list of file extensions (without the dot) which are handled by this runtime
-	FileExtensionsAnnotation = "funktion.fabric8.io/fileExtensions"
+	// FileExtensionsProperty a comma separated list of file extensions (without the dot) which are handled by this runtime
+	FileExtensionsProperty = "fileExtensions"
+
+	// SourceMountPathProperty the path in the docker image where we should mount the source code
+	SourceMountPathProperty = "sourceMountPath"
 
 	resyncPeriod = 30 * time.Second
 )

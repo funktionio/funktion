@@ -42,6 +42,7 @@ type createFunctionCmd struct {
 	source         string
 	file           string
 	watch          bool
+	debug          bool
 
 	configMaps     map[string]*v1.ConfigMap
 }
@@ -91,6 +92,7 @@ func newCreateFunctionCmd() *cobra.Command {
 	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
 	f.StringVar(&p.namespace, "namespace", "", "the namespace to query")
 	f.BoolVarP(&p.watch, "watch", "w", false, "whether to keep watching the files for changes to the function source code")
+	f.BoolVarP(&p.debug, "debug", "d", false, "enable debugging for the function?")
 	return cmd
 }
 
@@ -325,11 +327,10 @@ func (p *createFunctionCmd) findRuntimeFromFileName(fileName string) (string, er
 		return "", err
 	}
 	ext := strings.TrimPrefix(filepath.Ext(fileName), ".")
-	hasNodeJs := false
 	for _, resource := range resources.Items {
-		ann := resource.Annotations
-		if ann != nil {
-			extensions := ann[funktion.FileExtensionsAnnotation]
+		data := resource.Data
+		if data != nil {
+			extensions := data[funktion.FileExtensionsProperty]
 			if len(extensions) > 0 {
 				values := strings.Split(extensions, ",")
 				for _, value := range values {
@@ -339,14 +340,6 @@ func (p *createFunctionCmd) findRuntimeFromFileName(fileName string) (string, er
 				}
 			}
 		}
-		// support for legacy runtimes with no annotations
-		// TODO remove this code once new annotations are present!
-		if resource.Name == "nodejs" {
-			hasNodeJs = true
-		}
-	}
-	if hasNodeJs && ext == "js" {
-		return "nodejs", nil
 	}
 	return "", nil
 }
@@ -414,14 +407,18 @@ func (p *createFunctionCmd) createFunctionFromSource(name, source, runtime strin
 			labels[k] = v
 		}
 	}
+	data := map[string]string{
+		funktion.SourceProperty: source,
+	}
+	if p.debug {
+		data[funktion.DebugProperty] = "true"
+	}
 	cm := &v1.ConfigMap{
 		ObjectMeta: v1.ObjectMeta{
 			Name: name,
 			Labels: labels,
 		},
-		Data: map[string]string{
-			funktion.SourceProperty: source,
-		},
+		Data: data,
 	}
 	return cm, nil
 }
