@@ -37,8 +37,8 @@ import (
 )
 
 const (
-	connectorMetadataUrl = "io/fabric8/funktion/connector-package/maven-metadata.xml"
-	connectorPackageUrlPrefix = "io/fabric8/funktion/connector-package/%[1]s/connector-package-%[1]s-"
+	connectorMetadataUrl = "io/fabric8/funktion/funktion-connectors/maven-metadata.xml"
+	connectorPackageUrlPrefix = "io/fabric8/funktion/funktion-connectors/%[1]s/funktion-connectors-%[1]s-"
 	runtimePackageUrlPrefix = "io/fabric8/funktion/funktion-runtimes/%[1]s/funktion-runtimes-%[1]s-"
 
 	operatorMetadataUrl = "io/fabric8/platform/apps/funktion-operator/maven-metadata.xml"
