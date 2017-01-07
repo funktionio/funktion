@@ -71,7 +71,7 @@ func newCreateFunctionCmd() *cobra.Command {
 	p := &createFunctionCmd{
 	}
 	cmd := &cobra.Command{
-		Use:   "function [flags]",
+		Use:   "fn [flags]",
 		Short: "creates a new function resource",
 		Long:  `This command will create a new function resource`,
 		Run: func(cmd *cobra.Command, args []string) {
