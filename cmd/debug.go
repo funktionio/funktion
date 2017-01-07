@@ -293,7 +293,7 @@ func (p *debugCmd) openChromeDevTools(pod *v1.Pod, binaryFile string) error {
 	err = cmd.Wait()
 	if err != nil {
 		killCmd(cmd)
-		return fmt.Errorf("failed to wait for command %s %s: %v", filepath.Base(binaryFile), strings.Join(args, " "), err)
+		// ignore errors as we get an error if we kill it
 	}
 	return nil
 }
