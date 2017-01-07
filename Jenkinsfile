@@ -8,6 +8,8 @@ goNode{
       dockerOrganisation = 'funktion'
       project = 'funktion'
     }
+
+    updateDownstreamDependencies(v)
   }
 }
 
