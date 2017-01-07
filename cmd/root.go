@@ -22,6 +22,7 @@ import (
 	"k8s.io/client-go/1.5/tools/clientcmd"
 	"github.com/funktionio/funktion/pkg/funktion"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/1.5/dynamic"
 )
 
 const (
@@ -73,6 +74,26 @@ func createKubernetesClient(cmd *cobra.Command, kubeConfigPath string, kubeclien
 		*namespace = ns
 	}
 	return nil
+}
+
+func createKubernetesDynamicClient(kubeConfigPath string) (*dynamic.Client, error) {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	if len(kubeConfigPath) > 0 {
+		loadingRules.ExplicitPath = kubeConfigPath
+	}
+
+	overrides := &clientcmd.ConfigOverrides{}
+	//overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
+	//clientcmd.BindOverrideFlags(overrides, cmd.Flags(), overrideFlags)
+
+
+	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
+	cfg, err := kubeConfig.ClientConfig()
+	if err != nil {
+		fmt.Printf("failed to create Kubernetes client config due to %v\n", err)
+		return nil, err
+	}
+	return dynamic.NewClient(cfg)
 }
 
 func handleError(err error) {
