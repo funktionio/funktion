@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"github.com/funktionio/funktion/pkg/k8sutil"
 	"github.com/spf13/cobra"
@@ -26,8 +28,6 @@ import (
 	"k8s.io/client-go/1.5/pkg/api"
 	"k8s.io/client-go/1.5/pkg/api/v1"
 	"k8s.io/client-go/1.5/pkg/apis/extensions/v1beta1"
-	"strings"
-	"path/filepath"
 )
 
 type logCmd struct {

@@ -22,3 +22,5 @@ import:
 - package: github.com/magiconair/properties
 - package: github.com/fsnotify/fsnotify
 - package: github.com/kardianos/osext
+- package: github.com/pkg/browser
+

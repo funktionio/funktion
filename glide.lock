@@ -1,15 +1,15 @@
-hash: 9879602b6120f2a2b47fa84c635e0f4eeeb9137765ac7a415b4c0749a8b36bc3
-updated: 2017-01-06T17:20:39.156391257Z
+hash: 600c89061f0709ab9caa4bc0be1f08a75e0dec8851c0447470da782b1bd178a9
+updated: 2017-01-07T11:54:43.923587976Z
 imports:
 - name: cloud.google.com/go
-  version: 641b1469e744485a8e6235bffc3b7bf366758a85
+  version: c96c4486674a140772b9788370fa29898577bc0c
   subpackages:
   - compute/metadata
   - internal
 - name: github.com/blang/semver
   version: 3a37c301dda64cbe17f16f661b4c976803c0e2d2
 - name: github.com/coreos/go-oidc
-  version: 9e117111587506b9dc83b7b38263268bf48352ea
+  version: 2b5d73091ea4b7ddb15e3ac00077f153120b5b61
   subpackages:
   - jose
   - oauth2
@@ -27,10 +27,9 @@ imports:
   subpackages:
   - spew
 - name: github.com/docker/distribution
-  version: 534b155cc89a8787a192dd95bf293e4dde19335d
+  version: 7dba427612198a11b161a27f9d40bb2dca1ccd20
   subpackages:
   - reference
-  - digest
 - name: github.com/emicklei/go-restful
   version: d916db217751a3fef55337f799c31fde4b8efcf1
   subpackages:
@@ -97,8 +96,12 @@ imports:
   - buffer
 - name: github.com/mitchellh/mapstructure
   version: bfdb1a85537d60bc7e954e600c250219ea497417
+- name: github.com/opencontainers/go-digest
+  version: a6d0ee40d4207ea02364bd3b9e8e77b9159ba1eb
 - name: github.com/pborman/uuid
   version: 5007efa264d92316c43112bc573e754bc889b7b1
+- name: github.com/pkg/browser
+  version: 9302be274faad99162b9d48ec97b24306872ebb0
 - name: github.com/PuerkitoBio/purell
   version: 0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4
 - name: github.com/PuerkitoBio/urlesc
@@ -112,11 +115,11 @@ imports:
   subpackages:
   - codec
 - name: golang.org/x/crypto
-  version: 5b4074c2c416448b5d06e287167144493aabda43
+  version: cb497ae8f18e3c55f81bc9f3876c8f4c3d8a2813
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 905989bd20b7c354fd28a61074eed1c8f49ebc89
+  version: ae05321a78c1401cec22ba7bc203b597ea372496
   subpackages:
   - context
   - http2
@@ -146,7 +149,7 @@ imports:
   - transform
   - unicode/bidi
 - name: google.golang.org/appengine
-  version: 08a149cfaee099e6ce4be01c0113a78c85ee1dee
+  version: 8758a385849434ba5eac8aeedcf5192c5a0f5f10
   subpackages:
   - urlfetch
   - internal
@@ -191,6 +194,7 @@ imports:
   - 1.5/tools/cache
   - 1.5/pkg/api/errors
   - 1.5/pkg/conversion
+  - 1.5/pkg/util/homedir
   - 1.5/pkg/api/unversioned
   - 1.5/discovery
   - 1.5/kubernetes/typed/apps/v1alpha1
@@ -241,7 +245,6 @@ imports:
   - 1.5/pkg/conversion/queryparams
   - 1.5/pkg/util/errors
   - 1.5/pkg/util/json
-  - 1.5/pkg/util/homedir
   - 1.5/pkg/util/validation
   - 1.5/tools/auth
   - 1.5/tools/clientcmd/api
@@ -285,8 +288,4 @@ imports:
   - 1.5/tools/clientcmd/api/v1
   - 1.5/pkg/util/framer
   - 1.5/pkg/util/yaml
-- name: k8s.io/kubernetes
-  version: 9ce93ed50a7822d0fecd167211942cc18e6d965a
-  subpackages:
-  - pkg/util/homedir
 devImports: []

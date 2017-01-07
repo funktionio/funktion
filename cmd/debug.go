@@ -15,21 +15,27 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
 
+	"github.com/pkg/browser"
 	"github.com/funktionio/funktion/pkg/k8sutil"
+	"github.com/funktionio/funktion/pkg/funktion"
 	"github.com/spf13/cobra"
 
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api"
 	"k8s.io/client-go/1.5/pkg/api/v1"
 	"k8s.io/client-go/1.5/pkg/apis/extensions/v1beta1"
-	"strings"
-	"path/filepath"
-	"github.com/funktionio/funktion/pkg/funktion"
-	"strconv"
+)
+
+const (
+	chromeDevToolsURLPrefix = "chrome-devtools:"
 )
 
 type debugCmd struct {
@@ -149,10 +155,26 @@ func (p *debugCmd) createPortText(kindText, name string) (string, error) {
 
 	debugPort := 0
 	if kind == functionKind {
+		// ensure debug mode is enabled on the function
+		if found.Data == nil {
+			found.Data = map[string]string{}
+		}
+		data := found.Data
+		debugMode := data[funktion.DebugProperty]
+		if strings.ToLower(debugMode) != "true" {
+			data[funktion.DebugProperty] = "true"
+			_, err = cms.Update(found)
+			if err != nil {
+				return "", fmt.Errorf("Failed to update Function %s to enable debug mode %v", name, err)
+			}
+			fmt.Printf("Enabled debug mode for Function %s\n", name)
+		}
+
+		// lets use the debug port on the runtime
 		runtime := ""
-		data := found.Labels
-		if data != nil {
-			runtime = data[funktion.RuntimeLabel]
+		labels := found.Labels
+		if labels != nil {
+			runtime = labels[funktion.RuntimeLabel]
 		}
 		if len(runtime) > 0 {
 			return p.createPortText(runtimeKind, runtime)
@@ -227,14 +249,60 @@ func (p *debugCmd) viewLog(pod *v1.Pod) error {
 		}
 
 		if p.chromeDevTools {
-			return p.openChromeDevTools(pod)
+			return p.openChromeDevTools(pod, binaryFile)
 		}
 	}
 	return nil
 }
 
-func (p *debugCmd) openChromeDevTools(pod *v1.Pod) error {
-	// TODO
+func (p *debugCmd) openChromeDevTools(pod *v1.Pod, binaryFile string) error {
+	name := pod.Name
+
+	args := []string{"logs", "-f", name}
+	cmd := exec.Command(binaryFile, args...)
+
+	cmdReader, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to get stdout for command %s %s: %v", filepath.Base(binaryFile), strings.Join(args, " "), err)
+	}
+
+	scanner := bufio.NewScanner(cmdReader)
+	line := 0
+	go func() {
+		for scanner.Scan() {
+			if line++; line > 50 {
+				fmt.Printf("No log line found starting with `%s` in the first %d lines. Maybe debug is not really enabled in this pod?\n", chromeDevToolsURLPrefix, line)
+				cmdReader.Close()
+				killCmd(cmd)
+			}
+			text := strings.TrimSpace(scanner.Text())
+			if strings.HasPrefix(text, chromeDevToolsURLPrefix) {
+				fmt.Printf("\nTo Debug open: %s\n\n", text)
+				cmdReader.Close()
+				killCmd(cmd)
+				browser.OpenURL(text)
+			}
+		}
+	}()
+
+	if err := cmd.Start(); err != nil {
+		killCmd(cmd)
+		return fmt.Errorf("failed to start command %s %s: %v", filepath.Base(binaryFile), strings.Join(args, " "), err)
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		killCmd(cmd)
+		return fmt.Errorf("failed to wait for command %s %s: %v", filepath.Base(binaryFile), strings.Join(args, " "), err)
+	}
 	return nil
 }
 
+func killCmd(cmd *exec.Cmd) {
+	if cmd != nil {
+		p := cmd.Process
+		if p != nil {
+			p.Kill()
+		}
+	}
+}
