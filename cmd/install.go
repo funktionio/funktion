@@ -223,7 +223,7 @@ func (p *installPackageCmd) configureFlags(cmd *cobra.Command) {
 	f := cmd.Flags()
 	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
 	f.StringVarP(&p.mavenRepo, "maven-repo", "m", "https://repo1.maven.org/maven2/", "the maven repository used to download the Connector releases")
-	f.StringVarP(&p.namespace, "namespace", "n", "", "the namespace to query")
+	f.StringVarP(&p.namespace, "namespace", "n", "funktion-system", "the namespace to query")
 	f.StringVarP(&p.version, "version", "v", "latest", "the version of the connectors to install")
 	f.BoolVar(&p.replace, "replace", false, "if enabled we will replace exising Connectors with installed version")
 
@@ -400,6 +400,10 @@ func (p *installPackageCmd) run() error {
 		return err
 	}
 	uri := fmt.Sprintf(urlJoin(mavenRepo, p.packageUrlPrefix), version) + "kubernetes.yml"
+	err = p.checkNamespaceExists()
+	if err != nil {
+		return err
+	}
 	err = p.installPackage(uri, version)
 	if err != nil {
 		return err
@@ -407,12 +411,33 @@ func (p *installPackageCmd) run() error {
 	return nil
 }
 
+func (p *installPackageCmd) checkNamespaceExists() error {
+	name := p.namespace
+	namespaces := p.kubeclient.Namespaces()
+	ns, err := namespaces.Get(name)
+	if err != nil {
+		ns = &v1.Namespace{
+			ObjectMeta: v1.ObjectMeta{
+				Name: name,
+				Labels: map[string]string{
+					"system": "funktion",
+				},
+			},
+		}
+		_, err = namespaces.Create(ns)
+		if err == nil {
+			fmt.Printf("created Namespace %s\n", name)
+		}
+	}
+	return err
+}
+
 func (p *installPackageCmd) installPackage(uri string, version string) error {
 	binaryFile, err := k8sutil.ResolveKubectlBinary(p.kubeclient)
 	if err != nil {
 		return err
 	}
-	args := []string{"apply", "-f", uri}
+	args := []string{"apply", "--namespace", p.namespace, "-f", uri}
 	fmt.Printf("%s %s\n\n", filepath.Base(binaryFile), strings.Join(args, " "))
 	cmd := exec.Command(binaryFile, args...)
 	cmd.Stdout = os.Stdout
