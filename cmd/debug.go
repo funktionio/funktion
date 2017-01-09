@@ -113,12 +113,13 @@ func (p *debugCmd) run() error {
 	if err != nil {
 		return err
 	}
-	deployments := map[string]*v1beta1.Deployment{}
+	var deployment *v1beta1.Deployment
 	for _, item := range ds.Items {
-		name := item.Name
-		deployments[name] = &item
+		if item.Name == name {
+			deployment = &item
+			break
+		}
 	}
-	deployment := deployments[name]
 	if deployment == nil {
 		return fmt.Errorf("No Deployment found called `%s`", name)
 	}
