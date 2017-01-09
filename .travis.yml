@@ -6,4 +6,4 @@ install:
 script:
 - make bootstrap
 - make test
-- make funktion-linux-static
+- make cross
