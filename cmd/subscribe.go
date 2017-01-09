@@ -33,13 +33,13 @@ import (
 )
 
 const (
-	functionArgPrefix = "funktion:"
+	functionArgPrefix = "fn:"
 	setBodyArgPrefix = "setBody:"
 	setHeadersArgPrefix = "setHeaders:"
 )
 
 type subscribeCmd struct {
-	subscriptionName string
+	flowName string
 	connectorName    string
 	args             []string
 	trace            bool
@@ -60,7 +60,7 @@ func newSubscribeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "subscribe [flags] [endpointUrl] [function:name] [setBody:content] [setHeaders:foo:bar,xyz:abc]",
 		Short: "Subscribes to the given event stream and then invokes a function or HTTP endpoint",
-		Long:  `This command will create a new Subscription which receives input events and then invokes either a function or HTTP endpoint`,
+		Long:  `This command will create a new Flow which receives input events and then invokes either a function or HTTP endpoint`,
 		Run: func(cmd *cobra.Command, args []string) {
 			p.cmd = cmd
 			p.args = args
@@ -73,9 +73,9 @@ func newSubscribeCmd() *cobra.Command {
 		},
 	}
 	f := cmd.Flags()
-	f.StringVarP(&p.subscriptionName, "name", "n", "", "name of the subscription to create")
+	f.StringVarP(&p.flowName, "name", "n", "", "name of the flow to create")
 	f.StringVarP(&p.connectorName, "connector", "c", "", "the Connector name to use. If not specified uses the first URL scheme")
-	f.BoolVar(&p.trace, "trace", false, "enable tracing on the subscription")
+	f.BoolVar(&p.trace, "trace", false, "enable tracing on the flow")
 	f.BoolVar(&p.logResult, "log-result", true, "whether to log the result of the subcription to the log of the subcription pod")
 	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
 	return cmd
@@ -84,10 +84,10 @@ func newSubscribeCmd() *cobra.Command {
 func (p *subscribeCmd) run() error {
 	var err error
 	update := false
-	name := p.subscriptionName
+	name := p.flowName
 	args := p.args
 	if len(args) == 0 {
-		return fmt.Errorf("No arguments specified! A subscription must have one or more arguments of the form: [endpointUrl] | [function:name] | [setBody:content] | [setHeaders:foo=bar,abc=123]")
+		return fmt.Errorf("No arguments specified! A flow must have one or more arguments of the form: [endpointUrl] | [function:name] | [setBody:content] | [setHeaders:foo=bar,abc=123]")
 	}
 	steps, err := parseSteps(args)
 	if err != nil {
@@ -149,7 +149,7 @@ func (p *subscribeCmd) run() error {
 	}
 
 	labels := map[string]string{
-		funktion.KindLabel: funktion.SubscriptionKind,
+		funktion.KindLabel: funktion.FlowKind,
 		funktion.ConnectorLabel: connectorName,
 	}
 	data := map[string]string{
@@ -171,7 +171,7 @@ func (p *subscribeCmd) run() error {
 		_, err = p.kubeclient.ConfigMaps(p.namespace).Create(&cm)
 	}
 	if err == nil {
-		fmt.Printf("Created subscription %s flow: %s\n", name, stepsText(steps))
+		fmt.Printf("Created flow %s flow: %s\n", name, stepsText(steps))
 	}
 	return err
 }
@@ -251,7 +251,7 @@ func (p *subscribeCmd) checkConnectorExists(name string) (*v1.ConfigMap, error) 
 			return &resource, nil
 		}
 	}
-	return nil, fmt.Errorf("Connector \"%s\" not found so cannot create this subscription", name)
+	return nil, fmt.Errorf("Connector \"%s\" not found so cannot create this flow", name)
 }
 
 func (p *subscribeCmd) generateName(steps []spec.FunktionStep) (string, error) {
@@ -264,7 +264,7 @@ func (p *subscribeCmd) generateName(steps []spec.FunktionStep) (string, error) {
 	for _, item := range cms.Items {
 		names[item.Name] = true
 	}
-	prefix := "subscription"
+	prefix := "flow"
 
 	fromUri := ""
 	for _, step := range steps {
@@ -274,7 +274,7 @@ func (p *subscribeCmd) generateName(steps []spec.FunktionStep) (string, error) {
 		}
 	}
 
-	// lets try generate a subscription name from the scheme
+	// lets try generate a flow name from the scheme
 	if len(fromUri) > 0 {
 		u, err := url.Parse(fromUri)
 		if err != nil {

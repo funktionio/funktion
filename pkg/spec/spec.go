@@ -27,7 +27,7 @@ const (
 	SetHeadersKind = "setHeaders"
 )
 
-// Connector defines how to create a Deployment for a Subscription
+// Connector defines how to create a Deployment for a Flow
 type Connector struct {
 	unversioned.TypeMeta `json:",inline"`
 	v1.ObjectMeta        `json:"metadata,omitempty"`
@@ -42,7 +42,7 @@ type ConnectorList struct {
 	Items []*Connector `json:"items"`
 }
 
-// ConnectorSpec holds specification parameters of a Subscription deployment along with configuration metadata.
+// ConnectorSpec holds specification parameters of a Flow deployment along with configuration metadata.
 type ConnectorSpec struct {
 	DeploymentSpec *v1beta1.DeploymentSpec `json:"deploymentSpec"`
 

@@ -66,12 +66,12 @@ func newDebugCmd() *cobra.Command {
 	}
 	cmd := &cobra.Command{
 		Use:   "debug KIND NAME [flags]",
-		Short: "debugs the given function or subscription",
-		Long:  `This command will debug the latest container implementing the function or subscription`,
+		Short: "debugs the given function or flow",
+		Long:  `This command will debug the latest container implementing the function or flow`,
 		Run: func(cmd *cobra.Command, args []string) {
 			p.cmd = cmd
 			if len(args) < 1 {
-				handleError(fmt.Errorf("No resource kind argument supplied! Possible values ['fn', 'subscription']"))
+				handleError(fmt.Errorf("No resource kind argument supplied! Possible values ['fn', 'flow']"))
 				return
 			}
 			if len(args) < 2 {
@@ -194,7 +194,7 @@ func (p *debugCmd) createPortText(kindText, name string) (string, error) {
 				}
 			}
 		}
-	} else if kind == subscriptionKind {
+	} else if kind == flowKind {
 		connector := ""
 		data := found.Labels
 		if data != nil {
@@ -205,8 +205,8 @@ func (p *debugCmd) createPortText(kindText, name string) (string, error) {
 		}
 	}
 	if debugPort == 0 {
-		if kind == connectorKind || kind == subscriptionKind {
-			// default to java debug port for subscriptions and connectors if none specified
+		if kind == connectorKind || kind == flowKind {
+			// default to java debug port for flows and connectors if none specified
 			debugPort = 5005
 		}
 	}

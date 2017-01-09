@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	subscriptionKind = "subscription"
+	flowKind = "flow"
 	connectorKind = "connector"
 	runtimeKind = "runtime"
 	functionKind = "function"
@@ -104,9 +104,9 @@ func handleError(err error) {
 
 func listOptsForKind(kind string) (string, *api.ListOptions, error) {
 	switch kind {
-	case "s", "subscription", "subscriptions":
-		listOpts, err := funktion.CreateSubscriptionListOptions()
-		return subscriptionKind, listOpts, err
+	case "s", "flow", "flows":
+		listOpts, err := funktion.CreateFlowListOptions()
+		return flowKind, listOpts, err
 	case "c", "connector", "connectors":
 		listOpts, err := funktion.CreateConnectorListOptions()
 		return connectorKind, listOpts, err
@@ -117,18 +117,18 @@ func listOptsForKind(kind string) (string, *api.ListOptions, error) {
 		listOpts, err := funktion.CreateFunctionListOptions()
 		return functionKind, listOpts, err
 	default:
-		return "", nil, fmt.Errorf("Unknown kind `%s` when known kinds are (`connector`, `subscription`)", kind)
+		return "", nil, fmt.Errorf("Unknown kind `%s` when known kinds are (`connector`, `flow`)", kind)
 	}
 }
 
 
 func nameForDeployment(kube *kubernetes.Clientset, namespace string, kind string, name string) (string, error) {
-	// TODO we may need to map a function or subscription to a different named resource if we have a naming clash
-	// so we may need to look at a label or annotation on the function / subscription
+	// TODO we may need to map a function or flow to a different named resource if we have a naming clash
+	// so we may need to look at a label or annotation on the function / flow
 	return name, nil
 }
 func nameForService(kube *kubernetes.Clientset, namespace string, kind string, name string) (string, error) {
-	// TODO we may need to map a function or subscription to a different named resource if we have a naming clash
-	// so we may need to look at a label or annotation on the function / subscription
+	// TODO we may need to map a function or flow to a different named resource if we have a naming clash
+	// so we may need to look at a label or annotation on the function / flow
 	return name, nil
 }

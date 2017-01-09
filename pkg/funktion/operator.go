@@ -41,7 +41,7 @@ type Operator struct {
 	logger log.Logger
 
 	connectorInf    cache.SharedIndexInformer
-	subscriptionInf cache.SharedIndexInformer
+	flowInf cache.SharedIndexInformer
 	runtimeInf      cache.SharedIndexInformer
 	functionInf     cache.SharedIndexInformer
 	deploymentInf   cache.SharedIndexInformer
@@ -71,7 +71,7 @@ func New(cfg *rest.Config, logger log.Logger) (*Operator, error) {
 	}
 
 	logger.Log("msg", "creating ListOptions")
-	subscriptionListOpts, err := CreateSubscriptionListOptions()
+	flowListOpts, err := CreateFlowListOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -94,8 +94,8 @@ func New(cfg *rest.Config, logger log.Logger) (*Operator, error) {
 		resyncPeriod,
 		cache.Indexers{},
 	)
-	c.subscriptionInf = cache.NewSharedIndexInformer(
-		NewConfigMapListWatch(c.kclient, *subscriptionListOpts),
+	c.flowInf = cache.NewSharedIndexInformer(
+		NewConfigMapListWatch(c.kclient, *flowListOpts),
 		&v1.ConfigMap{},
 		resyncPeriod,
 		cache.Indexers{},
@@ -130,10 +130,10 @@ func New(cfg *rest.Config, logger log.Logger) (*Operator, error) {
 		DeleteFunc: c.handleDeleteConnector,
 		UpdateFunc: c.handleUpdateConnector,
 	})
-	c.subscriptionInf.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    c.handleAddSubscription,
-		DeleteFunc: c.handleDeleteSubscription,
-		UpdateFunc: c.handleUpdateSubscription,
+	c.flowInf.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.handleAddFlow,
+		DeleteFunc: c.handleDeleteFlow,
+		UpdateFunc: c.handleUpdateFlow,
 	})
 	c.runtimeInf.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.handleAddRuntime,
@@ -182,7 +182,7 @@ func (c *Operator) Run(stopc <-chan struct{}) error {
 	go c.worker()
 
 	go c.connectorInf.Run(stopc)
-	go c.subscriptionInf.Run(stopc)
+	go c.flowInf.Run(stopc)
 	go c.runtimeInf.Run(stopc)
 	go c.functionInf.Run(stopc)
 	go c.deploymentInf.Run(stopc)
@@ -297,46 +297,46 @@ func (c *Operator) handleUpdateConnector(old, cur interface{}) {
 	c.enqueue(key, ConnectorKind)
 }
 
-func (c *Operator) handleAddSubscription(obj interface{}) {
+func (c *Operator) handleAddFlow(obj interface{}) {
 	key, ok := c.keyFunc(obj)
 	if !ok {
 		return
 	}
 
-	analytics.SubscriptionCreated()
-	c.logger.Log("msg", "Subscription added", "key", key)
-	c.enqueue(key, SubscriptionKind)
+	analytics.FlowCreated()
+	c.logger.Log("msg", "Flow added", "key", key)
+	c.enqueue(key, FlowKind)
 }
 
-func (c *Operator) handleDeleteSubscription(obj interface{}) {
+func (c *Operator) handleDeleteFlow(obj interface{}) {
 	key, ok := c.keyFunc(obj)
 	if !ok {
 		return
 	}
 
-	analytics.SubscriptionDeleted()
-	c.logger.Log("msg", "Subscription deleted", "key", key)
-	c.enqueue(key, SubscriptionKind)
+	analytics.FlowDeleted()
+	c.logger.Log("msg", "Flow deleted", "key", key)
+	c.enqueue(key, FlowKind)
 }
 
-func (c *Operator) handleUpdateSubscription(old, cur interface{}) {
+func (c *Operator) handleUpdateFlow(old, cur interface{}) {
 	key, ok := c.keyFunc(cur)
 	if !ok {
 		return
 	}
 
-	c.logger.Log("msg", "Subscription updated", "key", key)
-	c.enqueue(key, SubscriptionKind)
+	c.logger.Log("msg", "Flow updated", "key", key)
+	c.enqueue(key, FlowKind)
 }
 
 func (c *Operator) handleDeleteDeployment(obj interface{}) {
-	if d := c.subscriptionForDeployment(obj); d != nil {
+	if d := c.flowForDeployment(obj); d != nil {
 		c.enqueue(d, DeploymentKind)
 	}
 }
 
 func (c *Operator) handleAddDeployment(obj interface{}) {
-	if d := c.subscriptionForDeployment(obj); d != nil {
+	if d := c.flowForDeployment(obj); d != nil {
 		c.enqueue(d, DeploymentKind)
 	}
 }
@@ -353,8 +353,8 @@ func (c *Operator) handleUpdateDeployment(oldo, curo interface{}) {
 		return
 	}
 
-	// Wake up Subscription resource the deployment belongs to.
-	if k := c.subscriptionForDeployment(cur); k != nil {
+	// Wake up Flow resource the deployment belongs to.
+	if k := c.flowForDeployment(cur); k != nil {
 		c.enqueue(k, DeploymentKind)
 	}
 }
@@ -434,15 +434,15 @@ func (c *Operator) worker() {
 	}
 }
 
-func (c *Operator) subscriptionForDeployment(obj interface{}) *v1.ConfigMap {
+func (c *Operator) flowForDeployment(obj interface{}) *v1.ConfigMap {
 	key, ok := c.keyFunc(obj)
 	if !ok {
 		return nil
 	}
 	// Namespace/Name are one-to-one so the key will find the respective Funktion resource.
-	k, exists, err := c.subscriptionInf.GetStore().GetByKey(key)
+	k, exists, err := c.flowInf.GetStore().GetByKey(key)
 	if err != nil {
-		c.logger.Log("msg", "Subscription lookup failed", "err", err)
+		c.logger.Log("msg", "Flow lookup failed", "err", err)
 		return nil
 	}
 	if !exists {
@@ -474,8 +474,8 @@ func (c *Operator) sync(resourceKey *ResourceKey) error {
 	c.logger.Log("msg", "reconcile funktion", "key", key, "kind", kind)
 
 	switch kind {
-	case SubscriptionKind:
-		return c.syncSubscription(key)
+	case FlowKind:
+		return c.syncFlow(key)
 	case ConnectorKind:
 		return nil
 	case RuntimeKind:
@@ -492,21 +492,21 @@ func (c *Operator) sync(resourceKey *ResourceKey) error {
 	}
 }
 
-func (c *Operator) syncSubscription(key string) error {
-	obj, exists, err := c.subscriptionInf.GetIndexer().GetByKey(key)
+func (c *Operator) syncFlow(key string) error {
+	obj, exists, err := c.flowInf.GetIndexer().GetByKey(key)
 	if err != nil {
 		return err
 	}
 	if !exists {
 		return c.destroyDeployment(key)
 	}
-	subscription := obj.(*v1.ConfigMap)
+	flow := obj.(*v1.ConfigMap)
 
-	connectorName := subscription.Labels[ConnectorLabel]
+	connectorName := flow.Labels[ConnectorLabel]
 	if len(connectorName) == 0 {
-		return fmt.Errorf("Subscription %s/%s does not have label %s", subscription.Namespace, subscription.Name, ConnectorLabel)
+		return fmt.Errorf("Flow %s/%s does not have label %s", flow.Namespace, flow.Name, ConnectorLabel)
 	}
-	ns := subscription.Namespace
+	ns := flow.Namespace
 	connectorKey := connectorName
 	if len(ns) > 0 && !strings.Contains(connectorName, "/") {
 		connectorKey = ns + "/" + connectorKey
@@ -516,21 +516,21 @@ func (c *Operator) syncSubscription(key string) error {
 		return err
 	}
 	if !exists {
-		return fmt.Errorf("Connector %s does not exist for Subscription %s/%s current connector keys are %v", connectorKey, subscription.Namespace, subscription.Name, c.connectorInf.GetIndexer().ListKeys())
+		return fmt.Errorf("Connector %s does not exist for Flow %s/%s current connector keys are %v", connectorKey, flow.Namespace, flow.Name, c.connectorInf.GetIndexer().ListKeys())
 	}
 	connector := obj.(*v1.ConfigMap)
 	if connector == nil {
-		return fmt.Errorf("Connector %s does not exist for Subscription %s/%s", connectorKey, subscription.Namespace, subscription.Name)
+		return fmt.Errorf("Connector %s does not exist for Flow %s/%s", connectorKey, flow.Namespace, flow.Name)
 	}
 
-	deploymentClient := c.kclient.Extensions().Deployments(subscription.Namespace)
+	deploymentClient := c.kclient.Extensions().Deployments(flow.Namespace)
 	obj, exists, err = c.deploymentInf.GetIndexer().GetByKey(key)
 	if err != nil {
 		return err
 	}
 
 	if !exists {
-		d, err := makeSubscriptionDeployment(subscription, connector, nil)
+		d, err := makeFlowDeployment(flow, connector, nil)
 		if err != nil {
 			return fmt.Errorf("make deployment: %s", err)
 		}
@@ -539,7 +539,7 @@ func (c *Operator) syncSubscription(key string) error {
 		}
 		return nil
 	}
-	d, err := makeSubscriptionDeployment(subscription, connector, obj.(*v1beta1.Deployment))
+	d, err := makeFlowDeployment(flow, connector, obj.(*v1beta1.Deployment))
 	if err != nil {
 		return fmt.Errorf("update deployment: %s", err)
 	}

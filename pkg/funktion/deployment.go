@@ -32,7 +32,7 @@ const (
 	// SchemaYmlProperty data key for the schema (JSON schema as YAML) file
 	SchemaYmlProperty = "schema.yml"
 
-	// Subscription
+	// Flow
 
 	// FunktionYmlProperty the data key for the funktion yaml file
 	FunktionYmlProperty = "funktion.yml"
@@ -72,19 +72,19 @@ const (
 	NameLabel = "name"
 )
 
-func makeSubscriptionDeployment(subscription *v1.ConfigMap, connector *v1.ConfigMap, old *v1beta1.Deployment) (*v1beta1.Deployment, error) {
+func makeFlowDeployment(flow *v1.ConfigMap, connector *v1.ConfigMap, old *v1beta1.Deployment) (*v1beta1.Deployment, error) {
 	deployYaml := connector.Data[DeploymentYmlProperty]
 	if len(deployYaml) == 0 {
-		return nil, fmt.Errorf("No property `%s` on the Subscription ConfigMap %s", DeploymentYmlProperty, subscription.Name)
+		return nil, fmt.Errorf("No property `%s` on the Flow ConfigMap %s", DeploymentYmlProperty, flow.Name)
 	}
 
 	deployment := v1beta1.Deployment{}
 	err := yaml.Unmarshal([]byte(deployYaml), &deployment)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse Deployment YAML from property `%s` on the Subscription ConfigMap %s. Error: %s", DeploymentYmlProperty, subscription.Name, err)
+		return nil, fmt.Errorf("Failed to parse Deployment YAML from property `%s` on the Flow ConfigMap %s. Error: %s", DeploymentYmlProperty, flow.Name, err)
 	}
 
-	name := subscription.Name
+	name := flow.Name
 	deployment.Name = name
 	if deployment.Annotations == nil {
 		deployment.Annotations = make(map[string]string)
@@ -103,34 +103,34 @@ func makeSubscriptionDeployment(subscription *v1.ConfigMap, connector *v1.Config
 			}
 		}
 	}
-	if subscription.Labels != nil {
-		for k, v := range subscription.Labels {
+	if flow.Labels != nil {
+		for k, v := range flow.Labels {
 			if len(deployment.Labels[k]) == 0 {
 				deployment.Labels[k] = v
 			}
 		}
 	}
 	if len(deployment.Annotations[ConfigMapControllerAnnotation]) == 0 {
-		deployment.Annotations[ConfigMapControllerAnnotation] = subscription.Name
+		deployment.Annotations[ConfigMapControllerAnnotation] = flow.Name
 	}
 
 	volumeName := "config"
 	items := []v1.KeyToPath{}
 
 	// lets mount any files from the ConfigMap
-	if len(subscription.Data[FunktionYmlProperty]) > 0 {
+	if len(flow.Data[FunktionYmlProperty]) > 0 {
 		items = append(items, v1.KeyToPath{
 			Key:  FunktionYmlProperty,
 			Path: "funktion.yml",
 		})
 	}
-	if len(subscription.Data[ApplicationPropertiesProperty]) > 0 {
+	if len(flow.Data[ApplicationPropertiesProperty]) > 0 {
 		items = append(items, v1.KeyToPath{
 			Key:  ApplicationPropertiesProperty,
 			Path: "application.properties",
 		})
 	}
-	if len(subscription.Data[ApplicationYmlProperty]) > 0 {
+	if len(flow.Data[ApplicationYmlProperty]) > 0 {
 		items = append(items, v1.KeyToPath{
 			Key:  ApplicationYmlProperty,
 			Path: "application.yml",
@@ -143,7 +143,7 @@ func makeSubscriptionDeployment(subscription *v1.ConfigMap, connector *v1.Config
 			VolumeSource: v1.VolumeSource{
 				ConfigMap: &v1.ConfigMapVolumeSource{
 					LocalObjectReference: v1.LocalObjectReference{
-						Name: subscription.Name,
+						Name: flow.Name,
 					},
 					Items: items,
 				},

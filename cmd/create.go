@@ -59,8 +59,8 @@ func newCreateCmd() *cobra.Command {
 	}
 
 	subscribeCmd := newSubscribeCmd()
-	subscribeCmd.Use = "subscription"
-	subscribeCmd.Short = "Creates a Subscription flow"
+	subscribeCmd.Use = "flow [flags]"
+	subscribeCmd.Short = "Creates a flow"
 
 	cmd.AddCommand(subscribeCmd)
 	cmd.AddCommand(newCreateFunctionCmd())
@@ -72,7 +72,7 @@ func newCreateFunctionCmd() *cobra.Command {
 	}
 	cmd := &cobra.Command{
 		Use:   "fn [flags]",
-		Short: "creates a new function resource",
+		Short: "creates a new function",
 		Long:  `This command will create a new function resource`,
 		Run: func(cmd *cobra.Command, args []string) {
 			p.cmd = cmd

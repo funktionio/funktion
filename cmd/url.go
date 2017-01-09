@@ -53,12 +53,12 @@ func newLocationCom() *cobra.Command {
 	p := &locationCom{}
 	cmd := &cobra.Command{
 		Use:   "url KIND NAME [flags]",
-		Short: "views the external URL you can use to access a function or subscription",
-		Long:  `This command will output the URL you can use to invoke a function of subscription`,
+		Short: "views the external URL you can use to access a function or flow",
+		Long:  `This command will output the URL you can use to invoke a function of flow`,
 		Run: func(cmd *cobra.Command, args []string) {
 			p.cmd = cmd
 			if len(args) < 1 {
-				handleError(fmt.Errorf("No resource kind argument supplied! Possible values ['fn', 'subscription']"))
+				handleError(fmt.Errorf("No resource kind argument supplied! Possible values ['fn', 'flow']"))
 				return
 			}
 			if len(args) < 2 {

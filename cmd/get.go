@@ -56,7 +56,7 @@ func newGetCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			p.cmd = cmd
 			if len(args) == 0 {
-				handleError(fmt.Errorf("No resource kind argument supplied! Possible values ['connector', 'subscription', 'function', 'runtime']"))
+				handleError(fmt.Errorf("No resource kind argument supplied! Possible values ['connector', 'flow', 'function', 'runtime']"))
 				return
 			}
 			p.kind = args[0]
@@ -89,14 +89,14 @@ func (p *getCmd) run() error {
 	if err != nil {
 		return err
 	}
-	if kind == subscriptionKind {
+	if kind == flowKind {
 		ds, err := kubeclient.Deployments(p.namespace).List(api.ListOptions{})
 		if err != nil {
 			return err
 		}
 		p.deployments = map[string]*v1beta1.Deployment{}
 		for _, item := range ds.Items {
-			// TODO lets assume the name of the Deployment is the name of the Subscription
+			// TODO lets assume the name of the Deployment is the name of the Flow
 			// but we may want to use a label instead to link them?
 			name := item.Name
 			p.deployments[name] = &item
@@ -128,8 +128,8 @@ func (p *getCmd) run() error {
 
 func (p *getCmd) printHeader(kind string) {
 	switch kind {
-	case subscriptionKind:
-		printSubscriptionRow("NAME", "PODS", "FLOW")
+	case flowKind:
+		printFlowRow("NAME", "PODS", "FLOW")
 	default:
 		fmt.Printf("NAME\n")
 	}
@@ -137,18 +137,18 @@ func (p *getCmd) printHeader(kind string) {
 
 func (p *getCmd) printResource(cm *v1.ConfigMap, kind string) {
 	switch kind {
-	case subscriptionKind:
-		printSubscriptionRow(cm.Name, p.subscriptionPodText(cm), p.subscriptionFlowText(cm))
+	case flowKind:
+		printFlowRow(cm.Name, p.flowPodText(cm), p.flowFlowText(cm))
 	default:
 		fmt.Printf("%s\n", cm.Name)
 	}
 }
 
-func printSubscriptionRow(name string, pod string, flow string) {
+func printFlowRow(name string, pod string, flow string) {
 	fmt.Printf("%-32s %-9s %s\n", name, pod, flow)
 }
 
-func (p *getCmd) subscriptionFlowText(cm *v1.ConfigMap) string {
+func (p *getCmd) flowFlowText(cm *v1.ConfigMap) string {
 	yamlText := cm.Data[funktion.FunktionYmlProperty]
 	if len(yamlText) == 0 {
 		return fmt.Sprintf("No `%s` property specified", funktion.FunktionYmlProperty)
@@ -189,7 +189,7 @@ func stepsText(steps []spec.FunktionStep) string {
 }
 
 
-func (p *getCmd) subscriptionPodText(cm *v1.ConfigMap) string {
+func (p *getCmd) flowPodText(cm *v1.ConfigMap) string {
 	name := cm.Name
 	deployment := p.deployments[name]
 	if deployment == nil {

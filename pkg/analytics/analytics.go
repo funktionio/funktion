@@ -45,12 +45,12 @@ func mustClient() *ga.Client {
 	return client
 }
 
-func SubscriptionCreated() {
-	send(ga.NewEvent(category, "subscription_created"))
+func FlowCreated() {
+	send(ga.NewEvent(category, "flow_created"))
 }
 
-func SubscriptionDeleted() {
-	send(ga.NewEvent(category, "subscription_deleted"))
+func FlowDeleted() {
+	send(ga.NewEvent(category, "flow_deleted"))
 }
 
 func ConnectorCreated() {

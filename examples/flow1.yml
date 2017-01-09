@@ -2,9 +2,9 @@
 apiVersion: "v1"
 kind: "ConfigMap"
 metadata:
-  name: "subscription1"
+  name: "flow1"
   labels:
-    funktion.fabric8.io/kind: "Subscription"
+    funktion.fabric8.io/kind: "Flow"
     connector: "timer"
 data:
   application.properties: |

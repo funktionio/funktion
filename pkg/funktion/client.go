@@ -29,7 +29,7 @@ const (
 	// KindLabel is the label key used on ConfigMaps to indicate the kind of resource
 	KindLabel = "funktion.fabric8.io/kind"
 
-	// Subscription
+	// Flow
 
 	// ConnectorLabel is the label key used on a ConfigMap to refer to a Connector
 	ConnectorLabel = "connector"
@@ -43,8 +43,8 @@ const (
 
 	// ConnectorKind is the value of a Connector fo the KindLabel
 	ConnectorKind = "Connector"
-	// SubscriptionKind is the value of a Subscription fo the KindLabel
-	SubscriptionKind = "Subscription"
+	// FlowKind is the value of a Flow fo the KindLabel
+	FlowKind = "Flow"
 	// RuntimeKind is the value of a Runtime fo the KindLabel
 	RuntimeKind = "Runtime"
 	// FunctionKind is the value of a Function fo the KindLabel
@@ -93,9 +93,9 @@ func NewServiceListWatch(client *kubernetes.Clientset) *cache.ListWatch {
 	}
 }
 
-// CreateSubscriptionListOptions returns the default selector for Subscription resources
-func CreateSubscriptionListOptions() (*api.ListOptions, error) {
-	return createKindListOptions(SubscriptionKind)
+// CreateFlowListOptions returns the default selector for Flow resources
+func CreateFlowListOptions() (*api.ListOptions, error) {
+	return createKindListOptions(FlowKind)
 }
 
 // CreateConnectorListOptions returns the default selector for Connector resources
