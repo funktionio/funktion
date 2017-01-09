@@ -38,7 +38,7 @@ const (
 	setHeadersArgPrefix = "setHeaders:"
 )
 
-type subscribeCmd struct {
+type createFlowCmd struct {
 	flowName string
 	connectorName    string
 	args             []string
@@ -50,16 +50,13 @@ type subscribeCmd struct {
 	kubeclient       *kubernetes.Clientset
 }
 
-func init() {
-	RootCmd.AddCommand(newSubscribeCmd())
-}
 
-func newSubscribeCmd() *cobra.Command {
-	p := &subscribeCmd{
+func newCreateFlowCmd() *cobra.Command {
+	p := &createFlowCmd{
 	}
 	cmd := &cobra.Command{
-		Use:   "subscribe [flags] [endpointUrl] [function:name] [setBody:content] [setHeaders:foo:bar,xyz:abc]",
-		Short: "Subscribes to the given event stream and then invokes a function or HTTP endpoint",
+		Use:   "flow [flags] [endpointUrl] [fn:name] [setBody:content] [setHeaders:foo:bar,xyz:abc]",
+		Short: "Creates a new flow which creates an event stream and then invokes a function or HTTP endpoint",
 		Long:  `This command will create a new Flow which receives input events and then invokes either a function or HTTP endpoint`,
 		Run: func(cmd *cobra.Command, args []string) {
 			p.cmd = cmd
@@ -81,7 +78,7 @@ func newSubscribeCmd() *cobra.Command {
 	return cmd
 }
 
-func (p *subscribeCmd) run() error {
+func (p *createFlowCmd) run() error {
 	var err error
 	update := false
 	name := p.flowName
@@ -236,7 +233,7 @@ func parseHeaders(text string) (map[string]string, error) {
 	return m, nil
 }
 
-func (p *subscribeCmd) checkConnectorExists(name string) (*v1.ConfigMap, error) {
+func (p *createFlowCmd) checkConnectorExists(name string) (*v1.ConfigMap, error) {
 	listOpts, err := funktion.CreateConnectorListOptions()
 	if err != nil {
 		return nil, err
@@ -254,7 +251,7 @@ func (p *subscribeCmd) checkConnectorExists(name string) (*v1.ConfigMap, error) 
 	return nil, fmt.Errorf("Connector \"%s\" not found so cannot create this flow", name)
 }
 
-func (p *subscribeCmd) generateName(steps []spec.FunktionStep) (string, error) {
+func (p *createFlowCmd) generateName(steps []spec.FunktionStep) (string, error) {
 	configmaps := p.kubeclient.ConfigMaps(p.namespace)
 	cms, err := configmaps.List(api.ListOptions{})
 	if err != nil {

@@ -104,20 +104,20 @@ func handleError(err error) {
 
 func listOptsForKind(kind string) (string, *api.ListOptions, error) {
 	switch kind {
-	case "s", "flow", "flows":
+	case "flow", "flows":
 		listOpts, err := funktion.CreateFlowListOptions()
 		return flowKind, listOpts, err
-	case "c", "connector", "connectors":
+	case "conn", "connector", "connectors":
 		listOpts, err := funktion.CreateConnectorListOptions()
 		return connectorKind, listOpts, err
 	case "r", "runtime", "runtimes":
 		listOpts, err := funktion.CreateRuntimeListOptions()
 		return runtimeKind, listOpts, err
-	case "f", "fn", "function", "functions", "funktion", "funktions":
+	case "fn", "function", "functions", "funktion", "funktions":
 		listOpts, err := funktion.CreateFunctionListOptions()
 		return functionKind, listOpts, err
 	default:
-		return "", nil, fmt.Errorf("Unknown kind `%s` when known kinds are (`connector`, `flow`)", kind)
+		return "", nil, fmt.Errorf("Unknown kind `%s` when known kinds are (`fn`, `flow`, `connector`, `runtime`)", kind)
 	}
 }
 
