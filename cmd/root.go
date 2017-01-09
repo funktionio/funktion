@@ -120,3 +120,15 @@ func listOptsForKind(kind string) (string, *api.ListOptions, error) {
 		return "", nil, fmt.Errorf("Unknown kind `%s` when known kinds are (`connector`, `subscription`)", kind)
 	}
 }
+
+
+func nameForDeployment(kube *kubernetes.Clientset, namespace string, kind string, name string) (string, error) {
+	// TODO we may need to map a function or subscription to a different named resource if we have a naming clash
+	// so we may need to look at a label or annotation on the function / subscription
+	return name, nil
+}
+func nameForService(kube *kubernetes.Clientset, namespace string, kind string, name string) (string, error) {
+	// TODO we may need to map a function or subscription to a different named resource if we have a naming clash
+	// so we may need to look at a label or annotation on the function / subscription
+	return name, nil
+}

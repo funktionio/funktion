@@ -87,6 +87,10 @@ func newLogCmd() *cobra.Command {
 
 func (p *logCmd) run() error {
 	kubeclient := p.kubeclient
+	name, err := nameForDeployment(p.kubeclient, p.namespace, p.kind, p.name)
+	if err != nil {
+		return err
+	}
 	ds, err := kubeclient.Deployments(p.namespace).List(api.ListOptions{})
 	if err != nil {
 		return err
@@ -96,16 +100,16 @@ func (p *logCmd) run() error {
 		name := item.Name
 		deployments[name] = &item
 	}
-	deployment := deployments[p.name]
+	deployment := deployments[name]
 	if deployment == nil {
-		return fmt.Errorf("No Deployment found called `%s`", p.name)
+		return fmt.Errorf("No Deployment found called `%s`", name)
 	}
 	selector := deployment.Spec.Selector
 	if selector == nil {
-		return fmt.Errorf("Deployment `%s` does not have a selector!", p.name)
+		return fmt.Errorf("Deployment `%s` does not have a selector!", name)
 	}
 	if selector.MatchLabels == nil {
-		return fmt.Errorf("Deployment `%s` selector does not have a matchLabels!", p.name)
+		return fmt.Errorf("Deployment `%s` selector does not have a matchLabels!", name)
 	}
 	listOpts, err := k8sutil.V1BetaSelectorToListOptions(selector)
 	if err != nil {
@@ -114,6 +118,7 @@ func (p *logCmd) run() error {
 	p.podAction.WatchPods(p.kubeclient, p.namespace, listOpts)
 	return p.podAction.WatchLoop()
 }
+
 
 func (p *logCmd) viewLog(pod *v1.Pod) error {
 	if pod != nil {

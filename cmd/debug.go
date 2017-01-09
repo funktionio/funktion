@@ -99,6 +99,10 @@ func newDebugCmd() *cobra.Command {
 }
 
 func (p *debugCmd) run() error {
+	name, err := nameForDeployment(p.kubeclient, p.namespace, p.kind, p.name)
+	if err != nil {
+	  return err
+	}
 	portText, err := p.createPortText(p.kind, p.name)
 	if err != nil {
 		return err
@@ -114,16 +118,16 @@ func (p *debugCmd) run() error {
 		name := item.Name
 		deployments[name] = &item
 	}
-	deployment := deployments[p.name]
+	deployment := deployments[name]
 	if deployment == nil {
-		return fmt.Errorf("No Deployment found called `%s`", p.name)
+		return fmt.Errorf("No Deployment found called `%s`", name)
 	}
 	selector := deployment.Spec.Selector
 	if selector == nil {
-		return fmt.Errorf("Deployment `%s` does not have a selector!", p.name)
+		return fmt.Errorf("Deployment `%s` does not have a selector!", name)
 	}
 	if selector.MatchLabels == nil {
-		return fmt.Errorf("Deployment `%s` selector does not have a matchLabels!", p.name)
+		return fmt.Errorf("Deployment `%s` selector does not have a matchLabels!", name)
 	}
 	listOpts, err := k8sutil.V1BetaSelectorToListOptions(selector)
 	if err != nil {
