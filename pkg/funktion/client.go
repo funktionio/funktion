@@ -15,54 +15,12 @@
 package funktion
 
 import (
-	"time"
-
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api"
 	"k8s.io/client-go/1.5/pkg/labels"
 	"k8s.io/client-go/1.5/pkg/runtime"
 	"k8s.io/client-go/1.5/pkg/watch"
 	"k8s.io/client-go/1.5/tools/cache"
-)
-
-const (
-	// KindLabel is the label key used on ConfigMaps to indicate the kind of resource
-	KindLabel = "funktion.fabric8.io/kind"
-
-	// Flow
-
-	// ConnectorLabel is the label key used on a ConfigMap to refer to a Connector
-	ConnectorLabel = "connector"
-
-	// Function
-
-	// RuntimeLabel is the label key used on a ConfigMap to refer to a Runtime
-	RuntimeLabel = "runtime"
-	// ProjectLabel the name of the folder where the source comes from
-	ProjectLabel = "project"
-
-	// ConnectorKind is the value of a Connector fo the KindLabel
-	ConnectorKind = "Connector"
-	// FlowKind is the value of a Flow fo the KindLabel
-	FlowKind = "Flow"
-	// RuntimeKind is the value of a Runtime fo the KindLabel
-	RuntimeKind = "Runtime"
-	// FunctionKind is the value of a Function fo the KindLabel
-	FunctionKind = "Function"
-	// DeploymentKind is the value of a Deployment fo the KindLabel
-	DeploymentKind = "Deployment"
-	// ServiceKind is the value of a ConneServicector fo the KindLabel
-	ServiceKind = "Service"
-
-	// Runtime
-
-	// FileExtensionsProperty a comma separated list of file extensions (without the dot) which are handled by this runtime
-	FileExtensionsProperty = "fileExtensions"
-
-	// SourceMountPathProperty the path in the docker image where we should mount the source code
-	SourceMountPathProperty = "sourceMountPath"
-
-	resyncPeriod = 30 * time.Second
 )
 
 // NewConfigMapListWatch returns a new ListWatch for ConfigMaps with the given listOptions
