@@ -2,6 +2,8 @@
 
 This example shows how to combine some functions and flows.
 
+Here's how to try it out. For more help on how to use the funktion CLI [check out the documentation](https://funktion.fabric8.io/docs/#cli)
+
 ```json
 
 echo "lets create the functions - pass -w to watch for file changes"
