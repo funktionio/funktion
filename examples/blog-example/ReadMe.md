@@ -5,10 +5,10 @@ This example shows how to combine some functions and flows.
 ```json
 
 echo "lets create the functions - pass -w to watch for file changes"
-funktion create function -f examples/blog-example
+funktion create fn -f examples/blog-example
 
 echo  "lets create a flow"
-funktion subscribe -n blogendpoint -c http4 http://localhost http://blogcount
+funktion create flow -n blogendpoint -c http4 http://localhost http://blogcount
 
 echo  "lets invoke the funky flow"
 export SPLIT=`minikube service --url split -n funky`
