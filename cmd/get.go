@@ -143,8 +143,10 @@ func (p *getCmd) printHeader(kind string) {
 	switch kind {
 	case flowKind:
 		printFlowRow("NAME", "PODS", "STEPS")
-	default:
+	case functionKind:
 		printFunctionRow("NAME", "PODS", "URL")
+	default:
+		printRuntimeRow("NAME", "VERSION")
 	}
 }
 
@@ -155,7 +157,7 @@ func (p *getCmd) printResource(cm *v1.ConfigMap, kind string) {
 	case flowKind:
 		printFlowRow(cm.Name, p.podText(cm), p.flowStepsText(cm))
 	default:
-		fmt.Printf("%s\n", cm.Name)
+		printRuntimeRow(cm.Name, p.runtimeVersion(cm))
 	}
 }
 
@@ -165,6 +167,10 @@ func printFunctionRow(name string, pod string, flow string) {
 
 func printFlowRow(name string, pod string, flow string) {
 	fmt.Printf("%-32s %-9s %s\n", name, pod, flow)
+}
+
+func printRuntimeRow(name string, version string) {
+	fmt.Printf("%-32s %s\n", name, version)
 }
 
 func (p *getCmd) podText(cm *v1.ConfigMap) string {
@@ -184,6 +190,14 @@ func (p *getCmd) functionURLText(cm *v1.ConfigMap) string {
 		return ""
 	}
 	return service.Annotations[exposeURLAnnotation]
+}
+
+func (p *getCmd) runtimeVersion(cm *v1.ConfigMap) string {
+	labels := cm.Labels
+	if labels != nil {
+		return labels[funktion.VersionLabel]
+	}
+	return ""
 }
 
 func (p *getCmd) flowStepsText(cm *v1.ConfigMap) string {
