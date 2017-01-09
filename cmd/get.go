@@ -40,6 +40,7 @@ type getCmd struct {
 	name           string
 
 	deployments    map[string]*v1beta1.Deployment
+	services       map[string]*v1.Service
 }
 
 func init() {
@@ -89,17 +90,29 @@ func (p *getCmd) run() error {
 	if err != nil {
 		return err
 	}
-	if kind == flowKind {
-		ds, err := kubeclient.Deployments(p.namespace).List(api.ListOptions{})
+	p.deployments = map[string]*v1beta1.Deployment{}
+	p.services = map[string]*v1.Service{}
+	ds, err := kubeclient.Deployments(p.namespace).List(api.ListOptions{})
+	if err != nil {
+		return err
+	}
+	p.deployments = map[string]*v1beta1.Deployment{}
+	for _, item := range ds.Items {
+		// TODO lets assume the name of the Deployment is the name of the Flow
+		// but we may want to use a label instead to link them?
+		name := item.Name
+		p.deployments[name] = &item
+	}
+	if kind == functionKind {
+		ss, err := kubeclient.Services(p.namespace).List(api.ListOptions{})
 		if err != nil {
 			return err
 		}
-		p.deployments = map[string]*v1beta1.Deployment{}
-		for _, item := range ds.Items {
-			// TODO lets assume the name of the Deployment is the name of the Flow
+		for _, item := range ss.Items {
+			// TODO lets assume the name of the Service is the name of the Function
 			// but we may want to use a label instead to link them?
 			name := item.Name
-			p.deployments[name] = &item
+			p.services[name] = &item
 		}
 	}
 	name := p.name
@@ -129,26 +142,51 @@ func (p *getCmd) run() error {
 func (p *getCmd) printHeader(kind string) {
 	switch kind {
 	case flowKind:
-		printFlowRow("NAME", "PODS", "FLOW")
+		printFlowRow("NAME", "PODS", "STEPS")
 	default:
-		fmt.Printf("NAME\n")
+		printFunctionRow("NAME", "PODS", "URL")
 	}
 }
 
 func (p *getCmd) printResource(cm *v1.ConfigMap, kind string) {
 	switch kind {
+	case functionKind:
+		printFunctionRow(cm.Name, p.podText(cm), p.functionURLText(cm))
 	case flowKind:
-		printFlowRow(cm.Name, p.flowPodText(cm), p.flowFlowText(cm))
+		printFlowRow(cm.Name, p.podText(cm), p.flowStepsText(cm))
 	default:
 		fmt.Printf("%s\n", cm.Name)
 	}
+}
+
+func printFunctionRow(name string, pod string, flow string) {
+	fmt.Printf("%-32s %-9s %s\n", name, pod, flow)
 }
 
 func printFlowRow(name string, pod string, flow string) {
 	fmt.Printf("%-32s %-9s %s\n", name, pod, flow)
 }
 
-func (p *getCmd) flowFlowText(cm *v1.ConfigMap) string {
+func (p *getCmd) podText(cm *v1.ConfigMap) string {
+	name := cm.Name
+	deployment := p.deployments[name]
+	if deployment == nil {
+		return ""
+	}
+	var status = deployment.Status
+	return fmt.Sprintf("%d/%d", status.AvailableReplicas, status.Replicas)
+}
+
+func (p *getCmd) functionURLText(cm *v1.ConfigMap) string {
+	name := cm.Name
+	service := p.services[name]
+	if service == nil || service.Annotations == nil {
+		return ""
+	}
+	return service.Annotations[exposeURLAnnotation]
+}
+
+func (p *getCmd) flowStepsText(cm *v1.ConfigMap) string {
 	yamlText := cm.Data[funktion.FunktionYmlProperty]
 	if len(yamlText) == 0 {
 		return fmt.Sprintf("No `%s` property specified", funktion.FunktionYmlProperty)
@@ -186,15 +224,4 @@ func stepsText(steps []spec.FunktionStep) string {
 		actionMessage = buffer.String()
 	}
 	return actionMessage
-}
-
-
-func (p *getCmd) flowPodText(cm *v1.ConfigMap) string {
-	name := cm.Name
-	deployment := p.deployments[name]
-	if deployment == nil {
-		return ""
-	}
-	var status = deployment.Status
-	return fmt.Sprintf("%d/%d", status.AvailableReplicas, status.Replicas)
 }
