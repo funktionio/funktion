@@ -85,7 +85,7 @@ func newLocationCom() *cobra.Command {
 }
 
 func (p *locationCom) run() error {
-	name, err := nameForDeployment(p.kubeclient, p.namespace, p.kind, p.name)
+	name, err := nameForService(p.kubeclient, p.namespace, p.kind, p.name)
 	if err != nil {
 		return err
 	}
