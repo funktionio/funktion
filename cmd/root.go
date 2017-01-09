@@ -16,13 +16,21 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api"
 	"k8s.io/client-go/1.5/tools/clientcmd"
-	"github.com/funktionio/funktion/pkg/funktion"
-	"github.com/spf13/cobra"
 	"k8s.io/client-go/1.5/dynamic"
+
+	"github.com/funktionio/funktion/pkg/config"
+	"github.com/funktionio/funktion/pkg/constants"
+	"github.com/funktionio/funktion/pkg/funktion"
+
+	"github.com/golang/glog"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -42,6 +50,11 @@ For more documentation please see: https://funktion.fabric8.io/`,
 			cmd.Help()
 		}
 	},
+}
+
+func init() {
+	viper.BindPFlags(RootCmd.PersistentFlags())
+	cobra.OnInitialize(initConfig)
 }
 
 func createKubernetesClient(cmd *cobra.Command, kubeConfigPath string, kubeclientHolder **kubernetes.Clientset, namespace *string) error {
@@ -121,7 +134,6 @@ func listOptsForKind(kind string) (string, *api.ListOptions, error) {
 	}
 }
 
-
 func nameForDeployment(kube *kubernetes.Clientset, namespace string, kind string, name string) (string, error) {
 	// TODO we may need to map a function or flow to a different named resource if we have a naming clash
 	// so we may need to look at a label or annotation on the function / flow
@@ -131,4 +143,53 @@ func nameForService(kube *kubernetes.Clientset, namespace string, kind string, n
 	// TODO we may need to map a function or flow to a different named resource if we have a naming clash
 	// so we may need to look at a label or annotation on the function / flow
 	return name, nil
+}
+
+// initConfig reads in config file and ENV variables if set.
+func initConfig() {
+	configPath := constants.ConfigFile
+	viper.SetConfigFile(configPath)
+	viper.SetConfigType("json")
+	err := viper.ReadInConfig()
+	if err != nil {
+		glog.Warningf("Error reading config file at %s: %s", configPath, err)
+	}
+	setupViper()
+}
+
+func setupViper() {
+	viper.SetEnvPrefix("FUNKTION_")
+
+	// Replaces '-' in flags with '_' in env variables
+	// e.g. show-libmachine-logs => $ENVPREFIX_SHOW_LIBMACHINE_LOGS
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.AutomaticEnv()
+
+	viper.SetDefault(config.WantUpdateNotification, true)
+	viper.SetDefault(config.ReminderWaitPeriodInHours, 24)
+	setFlagsUsingViper()
+}
+
+var viperWhiteList = []string{
+	"v",
+	"alsologtostderr",
+	"log_dir",
+}
+
+func setFlagsUsingViper() {
+	for _, config := range viperWhiteList {
+		var a = pflag.Lookup(config)
+		if a == nil {
+			continue
+		}
+		viper.SetDefault(a.Name, a.DefValue)
+		// If the flag is set, override viper value
+		if a.Changed {
+			viper.Set(a.Name, a.Value.String())
+		}
+		// Viper will give precedence first to calls to the Set command,
+		// then to values from the config.yml
+		a.Value.Set(viper.GetString(a.Name))
+		a.Changed = true
+	}
 }

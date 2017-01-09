@@ -1,40 +1,40 @@
-hash: 600c89061f0709ab9caa4bc0be1f08a75e0dec8851c0447470da782b1bd178a9
-updated: 2017-01-07T11:54:43.923587976Z
+hash: ceea13887e90f9d7de130c9adb643387e800a6ca2b06003b85efdf7875961dea
+updated: 2017-01-09T15:13:07.883930244Z
 imports:
-- name: cloud.google.com/go
-  version: c96c4486674a140772b9788370fa29898577bc0c
-  subpackages:
-  - compute/metadata
-  - internal
 - name: github.com/blang/semver
   version: 3a37c301dda64cbe17f16f661b4c976803c0e2d2
 - name: github.com/coreos/go-oidc
   version: 2b5d73091ea4b7ddb15e3ac00077f153120b5b61
   subpackages:
+  - http
   - jose
+  - key
   - oauth2
   - oidc
-  - http
-  - key
 - name: github.com/coreos/pkg
   version: 447b7ec906e523386d9c53be15b55a8ae86ea944
   subpackages:
-  - timeutil
   - health
   - httputil
+  - timeutil
 - name: github.com/davecgh/go-spew
   version: 346938d642f2ec3594ed81d874461961cd0faa76
   subpackages:
   - spew
 - name: github.com/docker/distribution
-  version: 7dba427612198a11b161a27f9d40bb2dca1ccd20
+  version: 559433598c7be9d30d6cfc5cad5b5dfdb686725c
+  repo: https://github.com/openshift/docker-distribution.git
+  vcs: git
   subpackages:
+  - digest
   - reference
 - name: github.com/emicklei/go-restful
-  version: d916db217751a3fef55337f799c31fde4b8efcf1
+  version: 152183b11abcd2b07ee814c8da82296340949747
+  repo: https://github.com/openshift/go-restful.git
+  vcs: git
   subpackages:
-  - swagger
   - log
+  - swagger
 - name: github.com/fsnotify/fsnotify
   version: fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197
 - name: github.com/ghodss/yaml
@@ -61,19 +61,43 @@ imports:
   - proto
   - sortkeys
 - name: github.com/golang/glog
-  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
+  version: 335da9dda11408a34b64344f82e9c03779b71673
+  repo: https://github.com/openshift/glog.git
+  vcs: git
 - name: github.com/golang/protobuf
-  version: 8ee79997227bf9b34611aee7946ae64735e6fd93
+  version: 8d92cf5fc15a4382f8964b08e1f42a75c0591aa3
   subpackages:
   - proto
+- name: github.com/google/go-github
+  version: dcda0b96bd591fbeb40dcaddec3fb40a7fcaca34
+  subpackages:
+  - github
+- name: github.com/google/go-querystring
+  version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
+  subpackages:
+  - query
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
-- name: github.com/googleapis/gax-go
-  version: da06d194a00e19ce00d9011a13931c3f6f6887c7
+- name: github.com/hashicorp/hcl
+  version: eb6f65b2d77ed5078887f960ff570fbddbbeb49d
+  subpackages:
+  - hcl/ast
+  - hcl/parser
+  - hcl/scanner
+  - hcl/strconv
+  - hcl/token
+  - json/parser
+  - json/scanner
+  - json/token
 - name: github.com/howeyc/gopass
   version: f5387c492211eb133053880d23dfae62aa14123d
 - name: github.com/imdario/mergo
   version: 50d4dbd4eb0e84778abe37cefef140271d96fade
+- name: github.com/inconshreveable/go-update
+  version: 8152e7eb6ccf8679a64582a66b78519688d156ad
+  subpackages:
+  - internal/binarydist
+  - internal/osext
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jonboulle/clockwork
@@ -91,46 +115,64 @@ imports:
 - name: github.com/mailru/easyjson
   version: 9d6630dc8c577b56cb9687a9cf9e8578aca7298a
   subpackages:
+  - buffer
   - jlexer
   - jwriter
-  - buffer
+- name: github.com/mattn/go-runewidth
+  version: 737072b4e32b7a5018b4a7125da8d12de90e8045
+- name: github.com/minishift/minishift
+  version: 5e83488418289665426fa5a80d11a342a777e25b
+  subpackages:
+  - pkg/util/archive
+  - pkg/util/github
+  - pkg/util/os
 - name: github.com/mitchellh/mapstructure
   version: bfdb1a85537d60bc7e954e600c250219ea497417
-- name: github.com/opencontainers/go-digest
-  version: a6d0ee40d4207ea02364bd3b9e8e77b9159ba1eb
 - name: github.com/pborman/uuid
   version: 5007efa264d92316c43112bc573e754bc889b7b1
+- name: github.com/pelletier/go-buffruneio
+  version: df1e16fde7fc330a0ca68167c23bf7ed6ac31d6d
+- name: github.com/pelletier/go-toml
+  version: 439fbba1f887c286024370cb4f281ba815c4c7d7
 - name: github.com/pkg/browser
   version: 9302be274faad99162b9d48ec97b24306872ebb0
+- name: github.com/pkg/errors
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/PuerkitoBio/purell
   version: 0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4
 - name: github.com/PuerkitoBio/urlesc
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
+- name: github.com/spf13/afero
+  version: 90dd71edc4d0a8b3511dc12ea15d617d03be09e0
+  subpackages:
+  - mem
+- name: github.com/spf13/cast
+  version: 56a7ecbeb18dde53c6db4bd96b541fd9741b8d44
 - name: github.com/spf13/cobra
   version: 1dd5ff2e11b6dca62fdcb275eb804b94607d8b06
+- name: github.com/spf13/jwalterweatherman
+  version: fa7ca7e836cf3a8bb4ebf799f472c12d7e903d66
 - name: github.com/spf13/pflag
   version: 25f8b5b07aece3207895bf19f7ab517eb3b22a40
+- name: github.com/spf13/viper
+  version: 5ed0fc31f7f453625df314d8e66b9791e8d13003
 - name: github.com/ugorji/go
-  version: 9c7f9b7a2bc3a520f7c7b30b34b7f85f47fe27b6
+  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
   subpackages:
   - codec
 - name: golang.org/x/crypto
-  version: cb497ae8f18e3c55f81bc9f3876c8f4c3d8a2813
+  version: c3b1d0d6d8690eaebe3064711b026770cc37efa3
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: ae05321a78c1401cec22ba7bc203b597ea372496
+  version: 4876518f9e71663000c348837735820161a42df7
   subpackages:
   - context
   - http2
   - http2/hpack
   - idna
-  - lex/httplex
-  - context/ctxhttp
-  - trace
-  - internal/timeseries
 - name: golang.org/x/oauth2
-  version: 314dd2c0bf3ebd592ec0d20847d27e79d0dbe8dd
+  version: 045497edb6234273d67dbc25da3f2ddbc4c4cacf
   subpackages:
   - google
   - internal
@@ -143,36 +185,28 @@ imports:
 - name: golang.org/x/text
   version: 44f4f658a783b0cee41fe0a23b8fc91d9c120558
   subpackages:
-  - secure/bidirule
+  - transform
   - unicode/norm
   - width
-  - transform
-  - unicode/bidi
 - name: google.golang.org/appengine
   version: 8758a385849434ba5eac8aeedcf5192c5a0f5f10
   subpackages:
-  - urlfetch
   - internal
-  - internal/urlfetch
   - internal/app_identity
-  - internal/modules
   - internal/base
   - internal/datastore
   - internal/log
+  - internal/modules
   - internal/remote_api
-- name: google.golang.org/grpc
-  version: 85497e2c516cd289bce5551b840ee27c2a0d6878
+  - internal/urlfetch
+  - urlfetch
+- name: google.golang.org/cloud
+  version: 975617b05ea8a58727e6c1a06b6161ff4185a9f2
   subpackages:
-  - codes
-  - credentials
-  - grpclog
+  - compute/metadata
   - internal
-  - metadata
-  - naming
-  - stats
-  - tap
-  - transport
-  - peer
+- name: gopkg.in/cheggaaa/pb.v1
+  version: d7e6ca3010b6f084d8056847f55d7f572f180678
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
@@ -180,23 +214,9 @@ imports:
 - name: k8s.io/client-go
   version: 843f7c4f28b1f647f664f883697107d5c02c5acc
   subpackages:
-  - 1.5/kubernetes
-  - 1.5/rest
-  - 1.5/tools/clientcmd
-  - 1.5/pkg/api
-  - 1.5/pkg/api/v1
-  - 1.5/pkg/apis/extensions/v1beta1
-  - 1.5/pkg/runtime
-  - 1.5/pkg/labels
-  - 1.5/pkg/util/runtime
-  - 1.5/pkg/util/wait
-  - 1.5/pkg/watch
-  - 1.5/tools/cache
-  - 1.5/pkg/api/errors
-  - 1.5/pkg/conversion
-  - 1.5/pkg/util/homedir
-  - 1.5/pkg/api/unversioned
   - 1.5/discovery
+  - 1.5/dynamic
+  - 1.5/kubernetes
   - 1.5/kubernetes/typed/apps/v1alpha1
   - 1.5/kubernetes/typed/authentication/v1beta1
   - 1.5/kubernetes/typed/authorization/v1beta1
@@ -208,84 +228,99 @@ imports:
   - 1.5/kubernetes/typed/policy/v1alpha1
   - 1.5/kubernetes/typed/rbac/v1alpha1
   - 1.5/kubernetes/typed/storage/v1beta1
+  - 1.5/pkg/api
+  - 1.5/pkg/api/errors
   - 1.5/pkg/api/install
-  - 1.5/pkg/apimachinery/registered
-  - 1.5/pkg/apis/apps/install
-  - 1.5/pkg/apis/authentication/install
-  - 1.5/pkg/apis/authorization/install
-  - 1.5/pkg/apis/autoscaling/install
-  - 1.5/pkg/apis/batch/install
-  - 1.5/pkg/apis/certificates/install
-  - 1.5/pkg/apis/extensions/install
-  - 1.5/pkg/apis/policy/install
-  - 1.5/pkg/apis/rbac/install
-  - 1.5/pkg/apis/storage/install
-  - 1.5/pkg/util/flowcontrol
-  - 1.5/plugin/pkg/client/auth
   - 1.5/pkg/api/meta
   - 1.5/pkg/api/meta/metatypes
   - 1.5/pkg/api/resource
-  - 1.5/pkg/auth/user
-  - 1.5/pkg/fields
-  - 1.5/pkg/runtime/serializer
-  - 1.5/pkg/selection
-  - 1.5/pkg/types
-  - 1.5/pkg/util/intstr
-  - 1.5/pkg/util/labels
-  - 1.5/pkg/util/rand
-  - 1.5/pkg/util/sets
-  - 1.5/pkg/util/uuid
-  - 1.5/pkg/util/validation/field
-  - 1.5/pkg/apis/extensions
-  - 1.5/pkg/util
-  - 1.5/pkg/util/parsers
-  - 1.5/pkg/watch/versioned
-  - 1.5/pkg/apis/autoscaling
-  - 1.5/pkg/apis/batch
-  - 1.5/pkg/conversion/queryparams
-  - 1.5/pkg/util/errors
-  - 1.5/pkg/util/json
-  - 1.5/pkg/util/validation
-  - 1.5/tools/auth
-  - 1.5/tools/clientcmd/api
-  - 1.5/tools/clientcmd/api/latest
-  - 1.5/pkg/util/net
+  - 1.5/pkg/api/unversioned
+  - 1.5/pkg/api/v1
   - 1.5/pkg/api/validation/path
-  - 1.5/pkg/runtime/serializer/streaming
-  - 1.5/pkg/util/cert
-  - 1.5/pkg/version
-  - 1.5/tools/metrics
-  - 1.5/transport
-  - 1.5/pkg/apis/apps
-  - 1.5/pkg/apis/certificates
-  - 1.5/pkg/apis/policy
-  - 1.5/pkg/util/clock
-  - 1.5/pkg/third_party/forked/golang/reflect
-  - 1.5/pkg/genericapiserver/openapi/common
-  - 1.5/pkg/apis/apps/v1alpha1
-  - 1.5/pkg/apis/authorization/v1beta1
-  - 1.5/pkg/apis/autoscaling/v1
-  - 1.5/pkg/apis/batch/v1
-  - 1.5/pkg/apis/certificates/v1alpha1
-  - 1.5/pkg/apis/policy/v1alpha1
-  - 1.5/pkg/apis/rbac/v1alpha1
-  - 1.5/pkg/apis/storage/v1beta1
   - 1.5/pkg/apimachinery
   - 1.5/pkg/apimachinery/announced
+  - 1.5/pkg/apimachinery/registered
+  - 1.5/pkg/apis/apps
+  - 1.5/pkg/apis/apps/install
+  - 1.5/pkg/apis/apps/v1alpha1
   - 1.5/pkg/apis/authentication
+  - 1.5/pkg/apis/authentication/install
   - 1.5/pkg/apis/authentication/v1beta1
   - 1.5/pkg/apis/authorization
+  - 1.5/pkg/apis/authorization/install
+  - 1.5/pkg/apis/authorization/v1beta1
+  - 1.5/pkg/apis/autoscaling
+  - 1.5/pkg/apis/autoscaling/install
+  - 1.5/pkg/apis/autoscaling/v1
+  - 1.5/pkg/apis/batch
+  - 1.5/pkg/apis/batch/install
+  - 1.5/pkg/apis/batch/v1
   - 1.5/pkg/apis/batch/v2alpha1
+  - 1.5/pkg/apis/certificates
+  - 1.5/pkg/apis/certificates/install
+  - 1.5/pkg/apis/certificates/v1alpha1
+  - 1.5/pkg/apis/extensions
+  - 1.5/pkg/apis/extensions/install
+  - 1.5/pkg/apis/extensions/v1beta1
+  - 1.5/pkg/apis/policy
+  - 1.5/pkg/apis/policy/install
+  - 1.5/pkg/apis/policy/v1alpha1
   - 1.5/pkg/apis/rbac
+  - 1.5/pkg/apis/rbac/install
+  - 1.5/pkg/apis/rbac/v1alpha1
   - 1.5/pkg/apis/storage
-  - 1.5/pkg/util/integer
-  - 1.5/plugin/pkg/client/auth/gcp
-  - 1.5/plugin/pkg/client/auth/oidc
+  - 1.5/pkg/apis/storage/install
+  - 1.5/pkg/apis/storage/v1beta1
+  - 1.5/pkg/auth/user
+  - 1.5/pkg/conversion
+  - 1.5/pkg/conversion/queryparams
+  - 1.5/pkg/fields
+  - 1.5/pkg/genericapiserver/openapi/common
+  - 1.5/pkg/labels
+  - 1.5/pkg/runtime
+  - 1.5/pkg/runtime/serializer
   - 1.5/pkg/runtime/serializer/json
   - 1.5/pkg/runtime/serializer/protobuf
   - 1.5/pkg/runtime/serializer/recognizer
+  - 1.5/pkg/runtime/serializer/streaming
   - 1.5/pkg/runtime/serializer/versioning
-  - 1.5/tools/clientcmd/api/v1
+  - 1.5/pkg/selection
+  - 1.5/pkg/third_party/forked/golang/reflect
+  - 1.5/pkg/types
+  - 1.5/pkg/util
+  - 1.5/pkg/util/cert
+  - 1.5/pkg/util/clock
+  - 1.5/pkg/util/errors
+  - 1.5/pkg/util/flowcontrol
   - 1.5/pkg/util/framer
+  - 1.5/pkg/util/homedir
+  - 1.5/pkg/util/integer
+  - 1.5/pkg/util/intstr
+  - 1.5/pkg/util/json
+  - 1.5/pkg/util/labels
+  - 1.5/pkg/util/net
+  - 1.5/pkg/util/parsers
+  - 1.5/pkg/util/rand
+  - 1.5/pkg/util/runtime
+  - 1.5/pkg/util/sets
+  - 1.5/pkg/util/uuid
+  - 1.5/pkg/util/validation
+  - 1.5/pkg/util/validation/field
+  - 1.5/pkg/util/wait
   - 1.5/pkg/util/yaml
-devImports: []
+  - 1.5/pkg/version
+  - 1.5/pkg/watch
+  - 1.5/pkg/watch/versioned
+  - 1.5/plugin/pkg/client/auth
+  - 1.5/plugin/pkg/client/auth/gcp
+  - 1.5/plugin/pkg/client/auth/oidc
+  - 1.5/rest
+  - 1.5/tools/auth
+  - 1.5/tools/cache
+  - 1.5/tools/clientcmd
+  - 1.5/tools/clientcmd/api
+  - 1.5/tools/clientcmd/api/latest
+  - 1.5/tools/clientcmd/api/v1
+  - 1.5/tools/metrics
+  - 1.5/transport
+testImports: []

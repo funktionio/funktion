@@ -7,13 +7,15 @@ GO := GO15VENDOREXPERIMENT=1 go
 BUILD_DIR ?= ./out
 NAME = funktion
 
+LDFLAGS := -X github.com/$(REPO)/pkg/version.version=$(VERSION) -s -w -extldflags '-static'
+
 funktion: $(shell find . -type f -name '*.go')
-	go build -o funktion github.com/funktionio/funktion/cmd/operator
+	go build -o funktion -ldflags="$(LDFLAGS)" github.com/funktionio/funktion/cmd/operator
 
 funktion-linux-static: $(shell find . -type f -name '*.go')
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
 		go build -o ./out/funktion-linux-amd64 \
-		-ldflags "-s" -a -installsuffix cgo \
+		-ldflags="$(LDFLAGS)" -a -installsuffix cgo \
 		github.com/funktionio/funktion/cmd/operator
 
 check: .check_license
