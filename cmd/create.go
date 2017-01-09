@@ -58,12 +58,8 @@ func newCreateCmd() *cobra.Command {
 		Long:  `This command will create a new resource`,
 	}
 
-	subscribeCmd := newSubscribeCmd()
-	subscribeCmd.Use = "flow [flags]"
-	subscribeCmd.Short = "Creates a flow"
-
-	cmd.AddCommand(subscribeCmd)
 	cmd.AddCommand(newCreateFunctionCmd())
+	cmd.AddCommand(newCreateFlowCmd())
 	return cmd
 }
 
