@@ -44,6 +44,8 @@ type createFunctionCmd struct {
 	watch          bool
 	debug          bool
 
+	envVars           []string
+
 	configMaps     map[string]*v1.ConfigMap
 }
 
@@ -85,6 +87,7 @@ func newCreateFunctionCmd() *cobra.Command {
 	f.StringVarP(&p.source, "source", "s", "", "the source code of the function to create")
 	f.StringVarP(&p.file, "file", "f", "", "the file name that contains the source code for the function to create")
 	f.StringVarP(&p.runtime, "runtime", "r", "nodejs", "the runtime to use. e.g. 'nodejs'")
+	f.StringArrayVarP(&p.envVars, "env", "e", []string{}, "pass one or more environment variables using the form NAME=VALUE")
 	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
 	f.StringVar(&p.namespace, "namespace", "", "the namespace to query")
 	f.BoolVarP(&p.watch, "watch", "w", false, "whether to keep watching the files for changes to the function source code")
@@ -293,7 +296,7 @@ func (p *createFunctionCmd) applyFile(fileName string) error {
 	message := "created"
 	if old != nil {
 		oldSource := old.Data[funktion.SourceProperty]
-		if (source == oldSource) {
+		if (source == oldSource && cm.Data[funktion.EnvVarsProperty] == old.Data[funktion.EnvVarsProperty]) {
 			// source not changed so lets not update!
 			return nil
 		}
@@ -408,6 +411,9 @@ func (p *createFunctionCmd) createFunctionFromSource(name, source, runtime strin
 	}
 	if p.debug {
 		data[funktion.DebugProperty] = "true"
+	}
+	if len(p.envVars) > 0 {
+		data[funktion.EnvVarsProperty] = strings.Join(p.envVars, "\n")
 	}
 	cm := &v1.ConfigMap{
 		ObjectMeta: v1.ObjectMeta{
