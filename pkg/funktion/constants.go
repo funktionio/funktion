@@ -47,6 +47,10 @@ const (
 
 	// Runtime
 
+	// ChromeDevToolsAnnotation boolean annotation to indicate chrome dev tools is enabled
+	// and that the URL will appear in the pods log
+	ChromeDevToolsAnnotation = "funktion.fabric8.io/chromeDevTools"
+
 	// VersionLabel the version of the runtime
 	VersionLabel = "version"
 

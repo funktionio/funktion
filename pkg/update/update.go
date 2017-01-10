@@ -39,6 +39,7 @@ import (
 	update "github.com/inconshreveable/go-update"
 	pb "gopkg.in/cheggaaa/pb.v1"
 	githubutils "github.com/minishift/minishift/pkg/util/github"
+	"path/filepath"
 )
 
 const (
@@ -132,7 +133,12 @@ func getLatestVersionFromGitHub(githubOwner, githubRepo string) (semver.Version,
 }
 
 func writeTimeToFile(path string, inputTime time.Time) error {
-	err := ioutil.WriteFile(path, []byte(inputTime.Format(timeLayout)), 0644)
+	dir := filepath.Dir(path)
+	err := os.MkdirAll(dir, 0777)
+	if err != nil {
+		return fmt.Errorf("Failed to create directory %s due to: %v", dir, err)
+	}
+	err = ioutil.WriteFile(path, []byte(inputTime.Format(timeLayout)), 0644)
 	if err != nil {
 		return fmt.Errorf("Error writing current update time to file: %s", err)
 	}
