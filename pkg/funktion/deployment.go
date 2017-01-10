@@ -49,6 +49,8 @@ const (
 	SourceProperty = "source"
 	// DebugProperty is the data key for whether to enable debugging in a Function ConfigMap
 	DebugProperty = "debug"
+	// EnvVarsProperty represents a newline terminated list of NAME=VALUE expressions for environment variables
+	EnvVarsProperty = "envVars"
 
 	// ExposeLabel is the label key to expose services
 	ExposeLabel = "expose"
@@ -247,6 +249,8 @@ func makeFunctionDeployment(function *v1.ConfigMap, runtime *v1.ConfigMap, old *
 		})
 	}
 
+	envVars := parseEnvVars(function.Data[EnvVarsProperty])
+
 	mountPath := runtime.Data[SourceMountPathProperty]
 	if len(mountPath) == 0 {
 		mountPath = "/funktion"
@@ -265,12 +269,59 @@ func makeFunctionDeployment(function *v1.ConfigMap, runtime *v1.ConfigMap, old *
 				ReadOnly:  true,
 			})
 		}
+		if len(envVars) > 0 {
+			applyEnvVars(&podSpec.Containers[i].Env, &envVars)
+		}
 	}
 	if len(deployment.Spec.Template.Spec.Containers[0].Name) == 0 {
 		deployment.Spec.Template.Spec.Containers[0].Name = "function"
 	}
 	setDeploymentLabel(&deployment, NameLabel, name)
 	return &deployment, nil
+}
+
+func parseEnvVars(text string) []v1.EnvVar {
+	answer := []v1.EnvVar{}
+	if len(text) > 0 {
+		lines := strings.Split(text, "\n")
+		for _, line := range lines {
+			l := strings.TrimSpace(line)
+			pair := strings.SplitN(l, "=", 2)
+			if len(pair) != 2 {
+				fmt.Printf("Ignoring bad environment variable pair. Expecting `NAME=VALUE` but got: %s\n", l)
+				continue
+			}
+			answer = append(answer, v1.EnvVar{
+				Name: pair[0],
+				Value: pair[1],
+			})
+		}
+		return answer
+	}
+	return answer
+}
+
+func applyEnvVars(envVar *[]v1.EnvVar, overrides *[]v1.EnvVar) {
+	if overrides == nil {
+		return
+
+	}
+	if *envVar == nil {
+		*envVar = []v1.EnvVar{}
+	}
+	for _, o := range *overrides {
+		found := false
+		for _, v := range *envVar {
+			if v.Name == o.Name {
+				v.Value = o.Value
+				v.ValueFrom = nil
+				found = true
+			}
+		}
+		if !found {
+			*envVar = append(*envVar, o)
+		}
+	}
 }
 
 func setDeploymentLabel(deployment *v1beta1.Deployment, key string, value string) {
