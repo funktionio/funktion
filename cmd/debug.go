@@ -39,20 +39,21 @@ const (
 )
 
 type debugCmd struct {
-	kubeclient     *kubernetes.Clientset
-	cmd            *cobra.Command
-	kubeConfigPath string
+	kubeclient             *kubernetes.Clientset
+	cmd                    *cobra.Command
+	kubeConfigPath         string
 
-	namespace      string
-	kind           string
-	name           string
-	localPort      int
-	remotePort     int
-	chromeDevTools bool
-	portText       string
+	namespace              string
+	kind                   string
+	name                   string
+	localPort              int
+	remotePort             int
+	supportsChromeDevTools bool
+	chromeDevTools         bool
+	portText               string
 
-	podAction      k8sutil.PodAction
-	debugCmd       *exec.Cmd
+	podAction              k8sutil.PodAction
+	debugCmd               *exec.Cmd
 }
 
 func init() {
@@ -74,13 +75,18 @@ func newDebugCmd() *cobra.Command {
 				handleError(fmt.Errorf("No resource kind argument supplied! Possible values ['fn', 'flow']"))
 				return
 			}
-			if len(args) < 2 {
-				handleError(fmt.Errorf("No name specified!"))
+			p.kind = args[0]
+			kind, _, err := listOptsForKind(p.kind)
+			if err != nil {
+				handleError(err)
 				return
 			}
-			p.kind = args[0]
+			if len(args) < 2 {
+				handleError(fmt.Errorf("No %s name specified!", kind))
+				return
+			}
 			p.name = args[1]
-			err := createKubernetesClient(cmd, p.kubeConfigPath, &p.kubeclient, &p.namespace)
+			err = createKubernetesClient(cmd, p.kubeConfigPath, &p.kubeclient, &p.namespace)
 			if err != nil {
 				handleError(err)
 				return
@@ -94,14 +100,14 @@ func newDebugCmd() *cobra.Command {
 	f.StringVarP(&p.name, "name", "v", "latest", "the version of the connectors to install")
 	f.IntVarP(&p.localPort, "local-port", "l", 0, "The localhost port to use for debugging or the container's debugging port is used")
 	f.IntVarP(&p.remotePort, "remote-port", "r", 0, "The remote container port to use for debugging or the container's debugging port is used")
-	f.BoolVarP(&p.chromeDevTools, "chrome", "c", false, "For node based containers open the Chrome DevTools to debug")
+	//f.BoolVarP(&p.chromeDevTools, "chrome", "c", false, "For node based containers open the Chrome DevTools to debug")
 	return cmd
 }
 
 func (p *debugCmd) run() error {
 	name, err := nameForDeployment(p.kubeclient, p.namespace, p.kind, p.name)
 	if err != nil {
-	  return err
+		return err
 	}
 	portText, err := p.createPortText(p.kind, p.name)
 	if err != nil {
@@ -195,6 +201,19 @@ func (p *debugCmd) createPortText(kindText, name string) (string, error) {
 				}
 			}
 		}
+		annotations := found.Annotations
+		if kind == runtimeKind && annotations != nil {
+			flag := annotations[funktion.ChromeDevToolsAnnotation]
+			if flag == "true" {
+				p.supportsChromeDevTools = true
+			} else if len(flag) == 0 {
+				// TODO handle older nodejs runtimes which don't have the annotation
+				// remove after next funktion-connectors release!
+				if found.Name == "nodejs" {
+					p.supportsChromeDevTools = true
+				}
+			}
+		}
 	} else if kind == flowKind {
 		connector := ""
 		data := found.Labels
@@ -253,14 +272,14 @@ func (p *debugCmd) viewLog(pod *v1.Pod) error {
 			return err
 		}
 
-		if p.chromeDevTools {
-			return p.openChromeDevTools(pod, binaryFile)
+		if p.supportsChromeDevTools {
+			return p.findChromeDevToolsURL(pod, binaryFile)
 		}
 	}
 	return nil
 }
 
-func (p *debugCmd) openChromeDevTools(pod *v1.Pod, binaryFile string) error {
+func (p *debugCmd) findChromeDevToolsURL(pod *v1.Pod, binaryFile string) error {
 	name := pod.Name
 
 	args := []string{"logs", "-f", name}
@@ -285,7 +304,9 @@ func (p *debugCmd) openChromeDevTools(pod *v1.Pod, binaryFile string) error {
 				fmt.Printf("\nTo Debug open: %s\n\n", text)
 				cmdReader.Close()
 				killCmd(cmd)
-				browser.OpenURL(text)
+				if p.chromeDevTools {
+					browser.OpenURL(text)
+				}
 			}
 		}
 	}()
