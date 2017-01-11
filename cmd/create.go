@@ -24,44 +24,91 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/funktionio/funktion/pkg/funktion"
 	"github.com/fsnotify/fsnotify"
 
-	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api/v1"
 )
 
-type createFunctionCmd struct {
-	kubeclient     *kubernetes.Clientset
-	cmd            *cobra.Command
-	kubeConfigPath string
+const (
+	flowExtension = ".flow.yml"
+)
 
-	namespace      string
+type createFunctionCmd struct {
+	createCmdCommon
+
 	name           string
 	runtime        string
 	source         string
 	file           string
 	watch          bool
 	debug          bool
+	apply          bool
+	functionsOnly          bool
 
-	envVars           []string
+	envVars        []string
 
 	configMaps     map[string]*v1.ConfigMap
 }
 
 func init() {
+	RootCmd.AddCommand(newApplyCmd())
 	RootCmd.AddCommand(newCreateCmd())
 }
 
-func newCreateCmd() *cobra.Command {
+func newApplyCmd() *cobra.Command {
+	p := &createFunctionCmd{
+		apply: true,
+	}
 	cmd := &cobra.Command{
-		Use:   "create KIND [NAME] [flags]",
-		Short: "creates a new resources",
-		Long:  `This command will create a new resource`,
+		Use:   "apply -f FILENAME",
+		Short: "applies one or more resources from a file, directory or URL",
+		Long:  `This command will apply (create or update) one or more resources from a file, directory or URL`,
+		Run: func(cmd *cobra.Command, args []string) {
+			p.cmd = cmd
+			err := createKubernetesClient(cmd, p.kubeConfigPath, &p.kubeclient, &p.namespace)
+			if err != nil {
+				handleError(err)
+				return
+			}
+			handleError(p.createFromFile())
+		},
 	}
 
 	cmd.AddCommand(newCreateFunctionCmd())
 	cmd.AddCommand(newCreateFlowCmd())
+
+	f := cmd.Flags()
+	f.StringVarP(&p.file, "file", "f", "", "the file name that contains the source code for the function to create")
+	p.setupCommonFlags(f)
+	return cmd
+}
+
+func newCreateCmd() *cobra.Command {
+	p := &createFunctionCmd{
+	}
+	cmd := &cobra.Command{
+		Use:   "create -f FILENAME",
+		Short: "creates one or more resources from the command line, a file, directory or URL",
+		Long:  `This command will create one or more resources from the command one, a file, directory or URL`,
+		Run: func(cmd *cobra.Command, args []string) {
+			p.cmd = cmd
+			err := createKubernetesClient(cmd, p.kubeConfigPath, &p.kubeclient, &p.namespace)
+			if err != nil {
+				handleError(err)
+				return
+			}
+			handleError(p.createFromFile())
+		},
+	}
+
+	cmd.AddCommand(newCreateFunctionCmd())
+	cmd.AddCommand(newCreateFlowCmd())
+
+	f := cmd.Flags()
+	f.StringVarP(&p.file, "file", "f", "", "the file name that contains the source code for the function to create")
+	p.setupCommonFlags(f)
 	return cmd
 }
 
@@ -79,57 +126,74 @@ func newCreateFunctionCmd() *cobra.Command {
 				handleError(err)
 				return
 			}
-			handleError(p.run())
+			handleError(p.createFunctionFromCLI())
 		},
 	}
 	f := cmd.Flags()
 	f.StringVarP(&p.name, "name", "n", "", "the name of the function to create")
 	f.StringVarP(&p.source, "source", "s", "", "the source code of the function to create")
-	f.StringVarP(&p.file, "file", "f", "", "the file name that contains the source code for the function to create")
 	f.StringVarP(&p.runtime, "runtime", "r", "nodejs", "the runtime to use. e.g. 'nodejs'")
-	f.StringArrayVarP(&p.envVars, "env", "e", []string{}, "pass one or more environment variables using the form NAME=VALUE")
-	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
-	f.StringVar(&p.namespace, "namespace", "", "the namespace to query")
-	f.BoolVarP(&p.watch, "watch", "w", false, "whether to keep watching the files for changes to the function source code")
-	f.BoolVarP(&p.debug, "debug", "d", false, "enable debugging for the function?")
+	p.setupCommonFlags(f)
 	return cmd
 }
 
-func (p *createFunctionCmd) run() error {
+func (p *createFunctionCmd) createFromFile() error {
+	file := p.file
+	var err error
+	if len(file) == 0 {
+		return fmt.Errorf("No file argument specified!");
+	}
+	var matches []string
+	if isExistingDir(file) {
+		files, err := ioutil.ReadDir(file)
+		if err != nil {
+			return err
+		}
+		matches = []string{}
+		for _, fi := range files {
+			if !fi.IsDir() {
+				matches = append(matches, filepath.Join(file, fi.Name()))
+			}
+		}
+	} else {
+		matches, err = filepath.Glob(file)
+		if err != nil {
+			return fmt.Errorf("Could not parse pattern %s due to %v", file, err)
+		} else if len(matches) == 0 {
+			fmt.Printf("No files exist matching the name: %s\n", file)
+			fmt.Println("Please specify a file name that exists or specify the directory containing functions")
+			return fmt.Errorf("No suitable source file: %s", file)
+		}
+	}
+	for _, file := range matches {
+		err = p.applyFile(file)
+		if err != nil {
+			return err
+		}
+	}
+	if err == nil && p.watch {
+		p.watchFiles()
+	}
+	return err
+}
+
+func (p *createFunctionCmd) setupCommonFlags(f *pflag.FlagSet) {
+	f.StringArrayVarP(&p.envVars, "env", "e", []string{}, "pass one or more environment variables using the form NAME=VALUE")
+	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
+	f.StringVar(&p.namespace, "namespace", "", "the namespace to create the resource")
+	f.BoolVarP(&p.watch, "watch", "w", false, "whether to keep watching the files for changes to the function source code")
+	f.BoolVarP(&p.debug, "debug", "d", false, "enable debugging for the function?")
+}
+
+func (p *createFunctionCmd) createFunctionFromCLI() error {
+	p.functionsOnly = true
 	listOpts, err := funktion.CreateFunctionListOptions()
 	if err != nil {
 		return err
 	}
 	file := p.file
 	if len(file) > 0 {
-		var matches []string
-		if isExistingDir(file) {
-			files, err := ioutil.ReadDir(file)
-			if err != nil {
-				return err
-			}
-			matches = []string{}
-			for _, fi := range files {
-				if !fi.IsDir() {
-					matches = append(matches, filepath.Join(file, fi.Name()))
-				}
-			}
-		} else {
-			matches, err = filepath.Glob(file)
-			if err != nil {
-				return fmt.Errorf("Could not parse pattern %s due to %v", file, err)
-			} else if len(matches) == 0 {
-				fmt.Printf("No files exist matching the name: %s\n", file)
-				fmt.Println("Please specify a file name that exists or specify the directory containing functions")
-				return fmt.Errorf("No suitable source file: %s", file)
-			}
-		}
-		for _, file := range matches {
-			err = p.applyFile(file)
-			if err != nil {
-				return err
-			}
-		}
+		return p.createFromFile()
 	} else {
 		kubeclient := p.kubeclient
 		cms := kubeclient.ConfigMaps(p.namespace)
@@ -142,7 +206,7 @@ func (p *createFunctionCmd) run() error {
 			p.configMaps[resource.Name] = &resource
 		}
 
-		name := p.nameFromFile(file)
+		name := nameFromFile(file, p.name)
 		if len(name) == 0 {
 			name, err = p.generateName()
 			if err != nil {
@@ -242,7 +306,6 @@ func isExistingDir(name string) bool {
 	return s.Mode().IsDir()
 }
 
-
 func (p *createFunctionCmd) applyFile(fileName string) error {
 	if !isExistingFile(fileName) {
 		return nil
@@ -251,6 +314,11 @@ func (p *createFunctionCmd) applyFile(fileName string) error {
 	if err != nil || len(source) == 0 {
 		// ignore errors or blank source
 		return nil
+	}
+	if !p.functionsOnly {
+		if strings.HasSuffix(fileName, flowExtension) {
+			return p.applyFlow(fileName, source)
+		}
 	}
 	runtime, err := p.findRuntimeFromFileName(fileName)
 	if err != nil {
@@ -263,7 +331,7 @@ func (p *createFunctionCmd) applyFile(fileName string) error {
 	if err != nil {
 		return err
 	}
-	name := p.nameFromFile(fileName)
+	name := nameFromFile(fileName, "")
 	if len(name) == 0 {
 		return fmt.Errorf("Could not generate a function name!")
 	}
@@ -343,9 +411,12 @@ func (p *createFunctionCmd) findRuntimeFromFileName(fileName string) (string, er
 	return "", nil
 }
 
-func (p *createFunctionCmd) nameFromFile(fileName string) string {
-	if len(p.name) != 0 {
-		return p.name
+// returns the name of the resource to use given the fileName and the configured name
+// if there is a configured name we will use that otherwise we will use the file name
+// without the extension
+func nameFromFile(fileName, configuredName string) string {
+	if len(configuredName) != 0 {
+		return convertToSafeResourceName(configuredName)
 	}
 	if len(fileName) == 0 {
 		return ""

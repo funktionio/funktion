@@ -63,13 +63,18 @@ func newLogCmd() *cobra.Command {
 				handleError(fmt.Errorf("No resource kind argument supplied! Possible values ['fn', 'flow']"))
 				return
 			}
-			if len(args) < 2 {
-				handleError(fmt.Errorf("No name specified!"))
+			p.kind = args[0]
+			kind, _, err := listOptsForKind(p.kind)
+			if err != nil {
+				handleError(err)
 				return
 			}
-			p.kind = args[0]
+			if len(args) < 2 {
+				handleError(fmt.Errorf("No %s name specified!", kind))
+				return
+			}
 			p.name = args[1]
-			err := createKubernetesClient(cmd, p.kubeConfigPath, &p.kubeclient, &p.namespace)
+			err = createKubernetesClient(cmd, p.kubeConfigPath, &p.kubeclient, &p.namespace)
 			if err != nil {
 				handleError(err)
 				return
@@ -88,7 +93,6 @@ func newLogCmd() *cobra.Command {
 func (p *logCmd) run() error {
 	kubeclient := p.kubeclient
 	name, err := nameForDeployment(p.kubeclient, p.namespace, p.kind, p.name)
-	fmt.Printf("Found name %s for initial name %s\n", name, p.name)
 	if err != nil {
 		return err
 	}
@@ -106,7 +110,6 @@ func (p *logCmd) run() error {
 	if deployment == nil {
 		return fmt.Errorf("No Deployment found called `%s`", name)
 	}
-	fmt.Printf("Using deployment %s\n", deployment.Name)
 	selector := deployment.Spec.Selector
 	if selector == nil {
 		return fmt.Errorf("Deployment `%s` does not have a selector!", name)
@@ -114,12 +117,10 @@ func (p *logCmd) run() error {
 	if selector.MatchLabels == nil {
 		return fmt.Errorf("Deployment `%s` selector does not have a matchLabels!", name)
 	}
-	fmt.Printf("Using selector %v\n", selector.MatchLabels)
 	listOpts, err := k8sutil.V1BetaSelectorToListOptions(selector)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Using listOpts %v\n", listOpts)
 	p.podAction.WatchPods(p.kubeclient, p.namespace, listOpts)
 	return p.podAction.WatchLoop()
 }

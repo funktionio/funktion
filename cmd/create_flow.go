@@ -17,7 +17,9 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -38,18 +40,21 @@ const (
 	setHeadersArgPrefix = "setHeaders:"
 )
 
-type createFlowCmd struct {
-	flowName string
-	connectorName    string
-	args             []string
-	trace            bool
-	logResult        bool
-	namespace        string
-	kubeConfigPath   string
-	cmd              *cobra.Command
-	kubeclient       *kubernetes.Clientset
+type createCmdCommon struct {
+	kubeclient     *kubernetes.Clientset
+	kubeConfigPath string
+	namespace      string
+	cmd            *cobra.Command
 }
 
+type createFlowCmd struct {
+	createCmdCommon
+	flowName      string
+	connectorName string
+	args          []string
+	trace         bool
+	logResult     bool
+}
 
 func newCreateFlowCmd() *cobra.Command {
 	p := &createFlowCmd{
@@ -75,13 +80,12 @@ func newCreateFlowCmd() *cobra.Command {
 	f.BoolVar(&p.trace, "trace", false, "enable tracing on the flow")
 	f.BoolVar(&p.logResult, "log-result", true, "whether to log the result of the subcription to the log of the subcription pod")
 	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
+	f.StringVar(&p.namespace, "namespace", "", "the namespace to create the flow inside")
 	return cmd
 }
 
 func (p *createFlowCmd) run() error {
 	var err error
-	update := false
-	name := p.flowName
 	args := p.args
 	if len(args) == 0 {
 		return fmt.Errorf("No arguments specified! A flow must have one or more arguments of the form: [endpointUrl] | [function:name] | [setBody:content] | [setHeaders:foo=bar,abc=123]")
@@ -90,15 +94,11 @@ func (p *createFlowCmd) run() error {
 	if err != nil {
 		return err
 	}
+	name := p.flowName
 	if len(name) == 0 {
 		name, err = p.generateName(steps)
 		if err != nil {
 			return err
-		}
-	} else {
-		_, err = p.kubeclient.ConfigMaps(p.namespace).Get(name)
-		if err == nil {
-			update = true
 		}
 	}
 	connectorName := p.connectorName
@@ -116,15 +116,9 @@ func (p *createFlowCmd) run() error {
 			}
 		}
 	}
-	connector, err := p.checkConnectorExists(connectorName)
-	if err != nil {
-		return err
-	}
-
-
 	funktionConfig := spec.FunkionConfig{
 		Flows: []spec.FunktionFlow{
-			spec.FunktionFlow{
+			{
 				Name: "default",
 				LogResult: p.logResult,
 				Trace: p.trace,
@@ -137,6 +131,29 @@ func (p *createFlowCmd) run() error {
 		return fmt.Errorf("Failed to marshal funktion %v due to marshalling error %v", &funktionConfig, err)
 	}
 	funktionYml := string(funktionData)
+
+	message := stepsText(steps)
+	return p.applyFlowWithConnector(name, funktionYml, connectorName, message)
+}
+
+func (p *createCmdCommon) applyFlow(fileName, source string) error {
+	_, name := filepath.Split(fileName)
+	name = convertToSafeResourceName(name[0:len(name) - len(flowExtension)])
+	if len(name) == 0 {
+		return fmt.Errorf("Could not generate a name of the flow from file %s", fileName)
+	}
+	message := fmt.Sprintf("from file %s", fileName)
+	// TODO parse from the steps!
+	connectorName := "timer"
+	return p.applyFlowWithConnector(name, source, connectorName, message)
+}
+
+func (p *createCmdCommon) applyFlowWithConnector(name, funktionYml, connectorName, message string) error {
+	connector, err := p.checkConnectorExists(connectorName)
+	if err != nil {
+		return err
+	}
+
 	applicationProperties := ""
 	if connector.Data != nil {
 		applicationProperties = connector.Data[funktion.ApplicationPropertiesProperty]
@@ -162,13 +179,29 @@ func (p *createFlowCmd) run() error {
 		},
 		Data: data,
 	}
+	update := false
+	old, err := p.kubeclient.ConfigMaps(p.namespace).Get(name)
+	if err == nil {
+		update = true
+	}
+
+	action := "created"
 	if update {
+		if old.Data != nil && old.Labels != nil &&
+			old.Data[funktion.FunktionYmlProperty] == cm.Data[funktion.FunktionYmlProperty] &&
+			old.Data[funktion.ApplicationPropertiesProperty] == cm.Data[funktion.ApplicationPropertiesProperty] &&
+			old.Labels[funktion.ConnectorLabel] == cm.Labels[funktion.ConnectorLabel] {
+			// source not changed so lets not update!
+			return nil
+		}
 		_, err = p.kubeclient.ConfigMaps(p.namespace).Update(&cm)
+		action = "updated"
 	} else {
 		_, err = p.kubeclient.ConfigMaps(p.namespace).Create(&cm)
 	}
+
 	if err == nil {
-		fmt.Printf("Created flow %s flow: %s\n", name, stepsText(steps))
+		log.Println("Flow", name, action, message)
 	}
 	return err
 }
@@ -220,6 +253,7 @@ func parseSteps(args []string) ([]spec.FunktionStep, error) {
 	}
 	return steps, nil
 }
+
 func parseHeaders(text string) (map[string]string, error) {
 	m := map[string]string{}
 	kvs := strings.Split(text, ",")
@@ -233,7 +267,7 @@ func parseHeaders(text string) (map[string]string, error) {
 	return m, nil
 }
 
-func (p *createFlowCmd) checkConnectorExists(name string) (*v1.ConfigMap, error) {
+func (p *createCmdCommon) checkConnectorExists(name string) (*v1.ConfigMap, error) {
 	listOpts, err := funktion.CreateConnectorListOptions()
 	if err != nil {
 		return nil, err
