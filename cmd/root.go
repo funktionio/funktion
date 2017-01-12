@@ -115,6 +115,11 @@ func handleError(err error) {
 	}
 }
 
+func usageError(cmd *cobra.Command, format string, args ...interface{}) error {
+	msg := fmt.Sprintf(format, args...)
+	return fmt.Errorf("%s\nSee '%s -h' for help and examples.", msg, cmd.CommandPath())
+}
+
 func listOptsForKind(kind string) (string, *api.ListOptions, error) {
 	switch kind {
 	case "flow", "flows":
