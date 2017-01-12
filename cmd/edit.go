@@ -15,15 +15,15 @@
 package cmd
 
 import (
-	"bytes"
 	"bufio"
+	"bytes"
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
-	"github.com/magiconair/properties"
 	"github.com/funktionio/funktion/pkg/funktion"
 	"github.com/funktionio/funktion/pkg/spec"
+	"github.com/magiconair/properties"
+	"github.com/spf13/cobra"
 
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api/v1"
@@ -31,19 +31,19 @@ import (
 )
 
 type editConnectorCmd struct {
-	kubeclient            *kubernetes.Clientset
-	cmd                   *cobra.Command
-	kubeConfigPath        string
+	kubeclient     *kubernetes.Clientset
+	cmd            *cobra.Command
+	kubeConfigPath string
 
-	namespace             string
-	name                  string
-	listProperties        bool
+	namespace      string
+	name           string
+	listProperties bool
 
 	configMaps            map[string]*v1.ConfigMap
 	schema                *spec.ConnectorSchema
 	applicationProperties *properties.Properties
 
-	setProperties         map[string]string
+	setProperties map[string]string
 }
 
 func init() {
@@ -62,8 +62,7 @@ func newEditCmd() *cobra.Command {
 }
 
 func newEditConnectorCmd() *cobra.Command {
-	p := &editConnectorCmd{
-	}
+	p := &editConnectorCmd{}
 	cmd := &cobra.Command{
 		Use:   "connector NAME [flags] [prop1=value1] [prop2=value2]",
 		Short: "edits a connectors configuration",
@@ -121,13 +120,14 @@ func (p *editConnectorCmd) run() error {
 	if err != nil {
 		return err
 	}
-	p.configMaps = map[string]*v1.ConfigMap{}
+	var connector *v1.ConfigMap
 	for _, resource := range resources.Items {
-		p.configMaps[resource.Name] = &resource
+		if resource.Name == p.name {
+			connector = &resource
+			break
+		}
 	}
-
 	name := p.name
-	connector := p.configMaps[name]
 	if connector == nil {
 		return fmt.Errorf("No Connector called `%s` exists in namespace %s", name, p.namespace)
 	}
@@ -150,11 +150,11 @@ func (p *editConnectorCmd) run() error {
 func (p *editConnectorCmd) loadConnectorSchema(name string, connector *v1.ConfigMap) error {
 	// lets load the connector model
 	if connector.Data == nil {
-		return fmt.Errorf("No data in the Connector %s", name);
+		return fmt.Errorf("No data in the Connector %s", name)
 	}
 	schemaYaml := connector.Data[funktion.SchemaYmlProperty]
 	if len(schemaYaml) == 0 {
-		return fmt.Errorf("No YAML for data key %s in Connector %s", funktion.SchemaYmlProperty, name);
+		return fmt.Errorf("No YAML for data key %s in Connector %s", funktion.SchemaYmlProperty, name)
 	}
 	schema, err := funktion.LoadConnectorSchema([]byte(schemaYaml))
 	if err != nil {
@@ -190,7 +190,7 @@ func (p *editConnectorCmd) listConnectorProperties(name string, connector *v1.Co
 		}
 	}
 	colText := strconv.Itoa(maxLen)
-	fmt.Printf("  %-" + colText + "s VALUE\n", "NAME")
+	fmt.Printf("  %-"+colText+"s VALUE\n", "NAME")
 	for k, cp := range compProps {
 		propertyKey := "camel.component." + name + "." + funktion.ToSpringBootPropertyName(k)
 		value := p.applicationProperties.GetString(propertyKey, "")
@@ -198,7 +198,7 @@ func (p *editConnectorCmd) listConnectorProperties(name string, connector *v1.Co
 		if cp.Required {
 			prompt = "*"
 		}
-		fmt.Printf("%s %-" + colText + "s %s\n", prompt, k, value)
+		fmt.Printf("%s %-"+colText+"s %s\n", prompt, k, value)
 	}
 	return nil
 }
