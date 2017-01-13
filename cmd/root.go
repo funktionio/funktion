@@ -43,7 +43,8 @@ const (
 var RootCmd = &cobra.Command{
 	Use:   "funktion",
 	Short: "funktion is a Function as a Service (Lambda) style programming model for Kubernetes",
-	Long: `Funktion lets you develop complex applications using simple functions and then bind those functions to any event source and run and scale your functions on top of kubernetes.
+	Long: `Funktion lets you develop complex applications using Functions and then use Flows to bind those functions to any event source (over 200 event sources and connectors supported) and run and scale your functions on top of kubernetes.
+
 For more documentation please see: https://funktion.fabric8.io/`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
