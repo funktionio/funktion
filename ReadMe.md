@@ -47,3 +47,22 @@ make
 ```
 
 and you'll get a `./funktion` binary you can play with
+
+#### Running locally outside of docker
+
+If you want to hack on the `operator` its often easier to just run it locally on your laptop using your local build via
+
+```
+./funktion operate
+```
+
+And scale down/delete the `funktion-operator` thats running inside kubernetes. 
+
+Provided your machine can talk to your kubernetes cluster via:
+
+```
+kubectl get pod
+kubectl get node
+```
+
+then the `funktion` binary should be able to monitor and operate all your flows and functions.
