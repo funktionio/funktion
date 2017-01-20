@@ -25,3 +25,25 @@ Please see [the website](https://funktion.fabric8.io/) and the [User Guide](http
 ### License
 
 This project is [Apache Licensed](license.md)
+
+### Building
+
+You will need a recent install of `go` along with `glide`.
+
+Then the first time you want to build you need to do this:
+
+```
+mkdir -p $GOROOT/funktionio/funktion
+cd $GOROOT/funktionio
+git clone https://github.com/funktionio/funktion.git
+cd funktion
+make bootstrap
+```
+
+Now whenever you want to do build you can just type
+
+```
+make
+```
+
+and you'll get a `./funktion` binary you can play with
