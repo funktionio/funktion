@@ -50,8 +50,13 @@ func ResolveKubectlBinary(kubeclient *kubernetes.Clientset) (string, error) {
 }
 
 func isOpenShiftCluster(kubeclient *kubernetes.Clientset) bool {
-	// TODO
-	return false
+	// The presence of "/oapi" on the API server is our hacky way of
+	// determining if we're talking to OpenShift
+	err := kubeclient.Core().GetRESTClient().Get().AbsPath("/oapi").Do().Error()
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 
