@@ -28,7 +28,6 @@ func TestConvertToSafeResourceName(t *testing.T) {
 	assertEquals(t, convertToSafeResourceName("-foo----bar-whatnot"), "foo-bar-whatnot")
 }
 
-
 func TestConvertToSafeLabelValue(t *testing.T) {
 	assertEquals(t, convertToSafeLabelValue("Foo-Bar"), "Foo-Bar")
 	assertEquals(t, convertToSafeLabelValue("foo-bar"), "foo-bar")
@@ -37,7 +36,6 @@ func TestConvertToSafeLabelValue(t *testing.T) {
 	assertEquals(t, convertToSafeLabelValue("foo/bar[]whatnot"), "foo-bar-whatnot")
 	assertEquals(t, convertToSafeLabelValue("-foo----bar-whatnot"), "foo----bar-whatnot")
 }
-
 
 func assertEquals(t *testing.T, found, expected string) {
 	if found != expected {

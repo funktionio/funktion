@@ -22,9 +22,9 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/kardianos/osext"
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/util/homedir"
-	"github.com/kardianos/osext"
 )
 
 // ResolveKubectlBinary resolves the binary to use such as 'kubectl' or 'oc'
@@ -41,7 +41,7 @@ func ResolveKubectlBinary(kubeclient *kubernetes.Clientset) (string, error) {
 
 	name, err := resolveBinaryLocation(kubeBinary)
 	if err != nil {
-	  return "", err
+		return "", err
 	}
 	if len(name) == 0 {
 		return "", fmt.Errorf("Could not find binary %s on your PATH. Is it installed?", kubeBinary)
@@ -58,7 +58,6 @@ func isOpenShiftCluster(kubeclient *kubernetes.Clientset) bool {
 	}
 	return true
 }
-
 
 // lets find the executable on the PATH or in the fabric8 directory
 func resolveBinaryLocation(executable string) (string, error) {

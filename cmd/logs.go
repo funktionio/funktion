@@ -35,13 +35,13 @@ type logCmd struct {
 	cmd            *cobra.Command
 	kubeConfigPath string
 
-	namespace      string
-	kind           string
-	name           string
-	follow         bool
+	namespace string
+	kind      string
+	name      string
+	follow    bool
 
-	podAction      k8sutil.PodAction
-	logCmd         *exec.Cmd
+	podAction k8sutil.PodAction
+	logCmd    *exec.Cmd
 }
 
 func init() {
@@ -125,7 +125,6 @@ func (p *logCmd) run() error {
 	return p.podAction.WatchLoop()
 }
 
-
 func (p *logCmd) viewLog(pod *v1.Pod) error {
 	if pod != nil {
 		binaryFile, err := k8sutil.ResolveKubectlBinary(p.kubeclient)
@@ -157,4 +156,3 @@ func (p *logCmd) viewLog(pod *v1.Pod) error {
 	}
 	return nil
 }
-

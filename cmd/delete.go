@@ -29,10 +29,10 @@ type deleteCmd struct {
 	cmd            *cobra.Command
 	kubeConfigPath string
 
-	kind           string
-	namespace      string
-	name           string
-	all            bool
+	kind      string
+	namespace string
+	name      string
+	all       bool
 }
 
 func init() {
@@ -40,8 +40,7 @@ func init() {
 }
 
 func newDeleteCmd() *cobra.Command {
-	p := &deleteCmd{
-	}
+	p := &deleteCmd{}
 	cmd := &cobra.Command{
 		Use:   "delete KIND ([NAME] | --all) [flags]",
 		Short: "delete resources",

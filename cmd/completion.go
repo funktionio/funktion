@@ -16,11 +16,10 @@ package cmd
 
 import (
 	"bytes"
-	"io"
 	"github.com/spf13/cobra"
+	"io"
 	"os"
 )
-
 
 func init() {
 	RootCmd.AddCommand(newCompletionCmd())
@@ -58,8 +57,8 @@ func newCompletionCmd() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:     "completion SHELL",
-		Short:   "Output shell completion code for the specified shell (bash or zsh)",
+		Use:   "completion SHELL",
+		Short: "Output shell completion code for the specified shell (bash or zsh)",
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCompletion(os.Stdout, cmd, args)
 			if err != nil {

@@ -15,12 +15,11 @@
 package cmd
 
 import (
-	"os"
 	"github.com/funktionio/funktion/pkg/update"
+	"os"
 
 	"github.com/spf13/cobra"
 )
-
 
 type updateCmd struct {
 }
@@ -46,4 +45,3 @@ func (p *updateCmd) run() error {
 	update.MaybeUpdateFromGithub(os.Stdout)
 	return nil
 }
-

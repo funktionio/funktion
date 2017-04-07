@@ -23,8 +23,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/ghodss/yaml"
+	"github.com/spf13/cobra"
 
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api"
@@ -35,8 +35,8 @@ import (
 )
 
 const (
-	functionArgPrefix = "fn:"
-	setBodyArgPrefix = "setBody:"
+	functionArgPrefix   = "fn:"
+	setBodyArgPrefix    = "setBody:"
 	setHeadersArgPrefix = "setHeaders:"
 )
 
@@ -57,8 +57,7 @@ type createFlowCmd struct {
 }
 
 func newCreateFlowCmd() *cobra.Command {
-	p := &createFlowCmd{
-	}
+	p := &createFlowCmd{}
 	cmd := &cobra.Command{
 		Use:   "flow [flags] [endpointUrl] [fn:name] [setBody:content] [setHeaders:foo:bar,xyz:abc]",
 		Short: "Creates a new flow which creates an event stream and then invokes a function or HTTP endpoint",
@@ -119,10 +118,10 @@ func (p *createFlowCmd) run() error {
 	funktionConfig := spec.FunkionConfig{
 		Flows: []spec.FunktionFlow{
 			{
-				Name: "default",
+				Name:      "default",
 				LogResult: p.logResult,
-				Trace: p.trace,
-				Steps: steps,
+				Trace:     p.trace,
+				Steps:     steps,
 			},
 		},
 	}
@@ -138,7 +137,7 @@ func (p *createFlowCmd) run() error {
 
 func (p *createCmdCommon) applyFlow(fileName, source string) error {
 	_, name := filepath.Split(fileName)
-	name = convertToSafeResourceName(name[0:len(name) - len(flowExtension)])
+	name = convertToSafeResourceName(name[0 : len(name)-len(flowExtension)])
 	if len(name) == 0 {
 		return fmt.Errorf("Could not generate a name of the flow from file %s", fileName)
 	}
@@ -163,19 +162,18 @@ func (p *createCmdCommon) applyFlowWithConnector(name, funktionYml, connectorNam
 	}
 
 	labels := map[string]string{
-		funktion.KindLabel: funktion.FlowKind,
+		funktion.KindLabel:      funktion.FlowKind,
 		funktion.ConnectorLabel: connectorName,
 	}
 	data := map[string]string{
-		funktion.FunktionYmlProperty: funktionYml,
+		funktion.FunktionYmlProperty:           funktionYml,
 		funktion.ApplicationPropertiesProperty: applicationProperties,
-
 	}
 	cm := v1.ConfigMap{
 		ObjectMeta: v1.ObjectMeta{
-			Name: name,
+			Name:      name,
 			Namespace: p.namespace,
-			Labels: labels,
+			Labels:    labels,
 		},
 		Data: data,
 	}
@@ -205,7 +203,6 @@ func (p *createCmdCommon) applyFlowWithConnector(name, funktionYml, connectorNam
 	}
 	return err
 }
-
 
 // parseSteps parses a sequence of arguments as either endpoint URLs, function:name,
 // setBody:content, setHeaders:foo=bar,abc=def
@@ -238,13 +235,13 @@ func parseSteps(args []string) ([]spec.FunktionStep, error) {
 				return steps, err
 			}
 			step = &spec.FunktionStep{
-				Kind: spec.SetHeadersKind,
+				Kind:    spec.SetHeadersKind,
 				Headers: headers,
 			}
 		} else {
 			step = &spec.FunktionStep{
 				Kind: spec.EndpointKind,
-				URI: arg,
+				URI:  arg,
 			}
 		}
 		if step != nil {
@@ -361,6 +358,7 @@ func convertToSafeResourceName(text string) string {
 	}
 	return buffer.String()
 }
+
 // convertToSafeLabelValue converts the given text into a usable kubernetes label value
 // removing any dodgy characters
 func convertToSafeLabelValue(text string) string {

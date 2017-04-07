@@ -38,11 +38,11 @@ type locationCom struct {
 	cmd            *cobra.Command
 	kubeConfigPath string
 
-	namespace      string
-	kind           string
-	name           string
-	open           bool
-	retry          bool
+	namespace string
+	kind      string
+	name      string
+	open      bool
+	retry     bool
 }
 
 func init() {
@@ -98,7 +98,7 @@ func (p *locationCom) openService(serviceName string) error {
 	if p.retry {
 		if err := RetryAfter(40, func() error {
 			return CheckService(c, ns, serviceName)
-		}, 10 * time.Second); err != nil {
+		}, 10*time.Second); err != nil {
 			fmt.Errorf("Could not find finalized endpoint being pointed to by %s: %v", serviceName, err)
 			os.Exit(1)
 		}
@@ -121,8 +121,6 @@ func (p *locationCom) openService(serviceName string) error {
 	}
 	return fmt.Errorf("No service %s in namespace %s\n", serviceName, ns)
 }
-
-
 
 // CheckService waits for the specified service to be ready by returning an error until the service is up
 // The check is done by polling the endpoint associated with the service and when the endpoint exists, returning no error->service-online

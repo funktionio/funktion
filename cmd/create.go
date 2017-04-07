@@ -23,10 +23,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fsnotify/fsnotify"
+	"github.com/funktionio/funktion/pkg/funktion"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/funktionio/funktion/pkg/funktion"
-	"github.com/fsnotify/fsnotify"
 
 	"k8s.io/client-go/1.5/pkg/api/v1"
 )
@@ -38,18 +38,18 @@ const (
 type createFunctionCmd struct {
 	createCmdCommon
 
-	name           string
-	runtime        string
-	source         string
-	file           string
-	watch          bool
-	debug          bool
-	apply          bool
-	functionsOnly          bool
+	name          string
+	runtime       string
+	source        string
+	file          string
+	watch         bool
+	debug         bool
+	apply         bool
+	functionsOnly bool
 
-	envVars        []string
+	envVars []string
 
-	configMaps     map[string]*v1.ConfigMap
+	configMaps map[string]*v1.ConfigMap
 }
 
 func init() {
@@ -86,8 +86,7 @@ func newApplyCmd() *cobra.Command {
 }
 
 func newCreateCmd() *cobra.Command {
-	p := &createFunctionCmd{
-	}
+	p := &createFunctionCmd{}
 	cmd := &cobra.Command{
 		Use:   "create -f FILENAME",
 		Short: "creates one or more resources from the command line, a file, directory or URL",
@@ -113,8 +112,7 @@ func newCreateCmd() *cobra.Command {
 }
 
 func newCreateFunctionCmd() *cobra.Command {
-	p := &createFunctionCmd{
-	}
+	p := &createFunctionCmd{}
 	cmd := &cobra.Command{
 		Use:   "fn [flags]",
 		Short: "creates a new function",
@@ -141,7 +139,7 @@ func (p *createFunctionCmd) createFromFile() error {
 	file := p.file
 	var err error
 	if len(file) == 0 {
-		return fmt.Errorf("No file argument specified!");
+		return fmt.Errorf("No file argument specified!")
 	}
 	var matches []string
 	if isExistingDir(file) {
@@ -220,10 +218,10 @@ func (p *createFunctionCmd) createFunctionFromCLI() error {
 		}
 		message := "created"
 		if update {
-			_, err = cms.Update(cm);
+			_, err = cms.Update(cm)
 			message = "updated"
 		} else {
-			_, err = cms.Create(cm);
+			_, err = cms.Create(cm)
 		}
 		if err == nil {
 			fmt.Printf("Function %s %s\n", name, message)
@@ -269,10 +267,10 @@ func (p *createFunctionCmd) watchFiles() {
 	for {
 		select {
 		case event := <-watcher.Events:
-			if event.Op & fsnotify.Rename == fsnotify.Rename {
+			if event.Op&fsnotify.Rename == fsnotify.Rename {
 				// if a file is renamed (e.g. IDE may do that) we no longer get any more events
 				// so lets add the files again to be sure
-				if (isExistingFile(event.Name)) {
+				if isExistingFile(event.Name) {
 					err = watcher.Add(event.Name)
 					if err != nil {
 						fmt.Printf("Failed to watch file %s due to %v\n", event.Name, err)
@@ -364,14 +362,14 @@ func (p *createFunctionCmd) applyFile(fileName string) error {
 	message := "created"
 	if old != nil {
 		oldSource := old.Data[funktion.SourceProperty]
-		if (source == oldSource && cm.Data[funktion.EnvVarsProperty] == old.Data[funktion.EnvVarsProperty]) {
+		if source == oldSource && cm.Data[funktion.EnvVarsProperty] == old.Data[funktion.EnvVarsProperty] {
 			// source not changed so lets not update!
 			return nil
 		}
-		_, err = cms.Update(cm);
+		_, err = cms.Update(cm)
 		message = "updated"
 	} else {
-		_, err = cms.Create(cm);
+		_, err = cms.Create(cm)
 	}
 	if err == nil {
 		log.Println("Function", name, message)
@@ -425,7 +423,7 @@ func nameFromFile(fileName, configuredName string) string {
 	ext := filepath.Ext(name)
 	l := len(ext)
 	if l > 0 {
-		name = name[0:len(name) - l]
+		name = name[0 : len(name)-l]
 	}
 	return convertToSafeResourceName(name)
 }
@@ -469,7 +467,7 @@ func (p *createFunctionCmd) createFunction(name string) (*v1.ConfigMap, error) {
 
 func (p *createFunctionCmd) createFunctionFromSource(name, source, runtime string, extraLabels map[string]string) (*v1.ConfigMap, error) {
 	labels := map[string]string{
-		funktion.KindLabel: funktion.FunctionKind,
+		funktion.KindLabel:    funktion.FunctionKind,
 		funktion.RuntimeLabel: runtime,
 	}
 	for k, v := range extraLabels {
@@ -488,7 +486,7 @@ func (p *createFunctionCmd) createFunctionFromSource(name, source, runtime strin
 	}
 	cm := &v1.ConfigMap{
 		ObjectMeta: v1.ObjectMeta{
-			Name: name,
+			Name:   name,
 			Labels: labels,
 		},
 		Data: data,

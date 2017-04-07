@@ -21,13 +21,13 @@ import (
 )
 
 const (
-	id = "UA-85532162-2"
+	id       = "UA-85532162-2"
 	category = "funktion-operator"
 )
 
 var (
 	client *ga.Client
-	once sync.Once
+	once   sync.Once
 )
 
 func send(e *ga.Event) {

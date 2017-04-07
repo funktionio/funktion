@@ -24,20 +24,20 @@ import (
 	"github.com/funktionio/funktion/pkg/funktion"
 
 	"github.com/go-kit/kit/log"
-	flag "github.com/spf13/pflag"
 	"github.com/spf13/cobra"
+	flag "github.com/spf13/pflag"
 	"k8s.io/client-go/1.5/tools/clientcmd"
 )
 
 func init() {
-    RootCmd.AddCommand(versionCmd)
+	RootCmd.AddCommand(versionCmd)
 }
 
 var versionCmd = &cobra.Command{
-    Use:   "operate",
-    Short: "Runs the funktion operator",
-    Long:  `This command will startup the operator for funktion`,
-    RunE: operateCommand,
+	Use:   "operate",
+	Short: "Runs the funktion operator",
+	Long:  `This command will startup the operator for funktion`,
+	RunE:  operateCommand,
 }
 
 func operateCommand(cmd *cobra.Command, args []string) error {
