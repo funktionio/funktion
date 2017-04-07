@@ -1,3 +1,4 @@
+SHELL = /bin/bash
 build: check funktion
 
 VERSION ?= $(shell cat version/VERSION)
@@ -28,6 +29,14 @@ check: .check_license
 
 image: check funktion-linux-static
 	docker build -t $(REPO):$(TAG) .
+
+.PHONY: check-gofmt
+check-gofmt:
+	 diff -u <(echo -n) <(gofmt -d `find . -type f -name '*.go' -not -path "./vendor/*"`)
+
+.PHONY: gofmt
+gofmt:
+	gofmt -w `find . -type f -name '*.go' -not -path "./vendor/*"`
 
 test:
 	CGO_ENABLED=0 $(GO) test github.com/funktionio/funktion/cmd github.com/funktionio/funktion/pkg/funktion
