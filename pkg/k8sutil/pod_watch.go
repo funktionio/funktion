@@ -37,10 +37,10 @@ const (
 	resyncPeriod = 30 * time.Second
 )
 
-type PodFunc func(pod *v1.Pod) (error)
+type PodFunc func(pod *v1.Pod) error
 
 type PodAction struct {
-	OnPodChange   PodFunc
+	OnPodChange PodFunc
 
 	latestPodName string
 	podInformer   cache.SharedIndexInformer
@@ -99,7 +99,7 @@ func (p *PodAction) WatchPods(kubeclient *kubernetes.Clientset, namespace string
 	inf.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    p.handlePodAdd,
 		DeleteFunc: p.handlePodDelete,
-		UpdateFunc:p.handlePodUpdate,
+		UpdateFunc: p.handlePodUpdate,
 	})
 	p.podInformer = inf
 	return inf

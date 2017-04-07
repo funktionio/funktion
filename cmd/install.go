@@ -29,22 +29,22 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
 
+	"k8s.io/client-go/1.5/dynamic"
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api/v1"
 	"k8s.io/client-go/1.5/pkg/runtime"
-	"k8s.io/client-go/1.5/dynamic"
 	"os/exec"
 )
 
 const (
-	connectorMetadataUrl = "io/fabric8/funktion/funktion-connectors/maven-metadata.xml"
+	connectorMetadataUrl      = "io/fabric8/funktion/funktion-connectors/maven-metadata.xml"
 	connectorPackageUrlPrefix = "io/fabric8/funktion/funktion-connectors/%[1]s/funktion-connectors-%[1]s-"
-	runtimePackageUrlPrefix = "io/fabric8/funktion/funktion-runtimes/%[1]s/funktion-runtimes-%[1]s-"
+	runtimePackageUrlPrefix   = "io/fabric8/funktion/funktion-runtimes/%[1]s/funktion-runtimes-%[1]s-"
 
-	operatorMetadataUrl = "io/fabric8/platform/apps/funktion-operator/maven-metadata.xml"
+	operatorMetadataUrl      = "io/fabric8/platform/apps/funktion-operator/maven-metadata.xml"
 	operatorPackageUrlPrefix = "io/fabric8/platform/apps/funktion-operator/%[1]s/funktion-operator-%[1]s-"
 
-	platformMetadataUrl = "io/fabric8/platform/packages/funktion-platform/maven-metadata.xml"
+	platformMetadataUrl      = "io/fabric8/platform/packages/funktion-platform/maven-metadata.xml"
 	platformPackageUrlPrefix = "io/fabric8/platform/packages/funktion-platform/%[1]s/funktion-platform-%[1]s-"
 )
 
@@ -53,13 +53,13 @@ type installConnectorCmd struct {
 	cmd            *cobra.Command
 	kubeConfigPath string
 
-	namespace      string
-	names          []string
-	version        string
-	mavenRepo      string
-	replace        bool
-	list           bool
-	all            bool
+	namespace string
+	names     []string
+	version   string
+	mavenRepo string
+	replace   bool
+	list      bool
+	all       bool
 }
 
 type installRuntimeCmd struct {
@@ -67,25 +67,25 @@ type installRuntimeCmd struct {
 	cmd            *cobra.Command
 	kubeConfigPath string
 
-	namespace      string
-	names          []string
-	version        string
-	mavenRepo      string
-	replace        bool
-	list           bool
-	all            bool
+	namespace string
+	names     []string
+	version   string
+	mavenRepo string
+	replace   bool
+	list      bool
+	all       bool
 }
 
 type installPackageCmd struct {
-	kubeclient         *kubernetes.Clientset
-	cmd                *cobra.Command
-	kubeConfigPath     string
-	dynamicClient      *dynamic.Client
+	kubeclient     *kubernetes.Clientset
+	cmd            *cobra.Command
+	kubeConfigPath string
+	dynamicClient  *dynamic.Client
 
-	namespace          string
-	version            string
-	mavenRepo          string
-	replace            bool
+	namespace string
+	version   string
+	mavenRepo string
+	replace   bool
 
 	packageMetadataUrl string
 	packageUrlPrefix   string
@@ -110,8 +110,7 @@ func newInstallCmd() *cobra.Command {
 }
 
 func newInstallConnectorCmd() *cobra.Command {
-	p := &installConnectorCmd{
-	}
+	p := &installConnectorCmd{}
 	cmd := &cobra.Command{
 		Use:   "connector [NAMES] [flags]",
 		Short: "installs Connectors into the current namespace",
@@ -139,8 +138,7 @@ func newInstallConnectorCmd() *cobra.Command {
 }
 
 func newInstallRuntimeCmd() *cobra.Command {
-	p := &installRuntimeCmd{
-	}
+	p := &installRuntimeCmd{}
 	cmd := &cobra.Command{
 		Use:   "runtime [NAMES] [flags]",
 		Short: "installs the function Runtimes into the current namespace",
@@ -163,8 +161,8 @@ func newInstallRuntimeCmd() *cobra.Command {
 	f.StringVarP(&p.version, "version", "v", "latest", "the version of the connectors to install")
 	f.BoolVar(&p.replace, "replace", false, "if enabled we will replace exising Connectors with installed version")
 	/*
-	f.BoolVarP(&p.list, "list", "l", false, "list all the available Runtimes but don't install them")
-	f.BoolVarP(&p.all, "all", "a", false, "Install all the runtimes")
+		f.BoolVarP(&p.list, "list", "l", false, "list all the available Runtimes but don't install them")
+		f.BoolVarP(&p.all, "all", "a", false, "Install all the runtimes")
 	*/
 	return cmd
 }
@@ -172,12 +170,12 @@ func newInstallRuntimeCmd() *cobra.Command {
 func newInstallOperatorCmd() *cobra.Command {
 	p := &installPackageCmd{
 		packageMetadataUrl: operatorMetadataUrl,
-		packageUrlPrefix: operatorPackageUrlPrefix,
+		packageUrlPrefix:   operatorPackageUrlPrefix,
 	}
 	cmd := &cobra.Command{
 		Use:   "operator [NAMES] [flags]",
 		Short: "installs the Funktion Operator into the current namespace (when using fabric8)",
-		Long:  `This command will install the Funktion Operator into the current namespace
+		Long: `This command will install the Funktion Operator into the current namespace
 
 NOTE his command assumes you are already using the fabric8 developer platform - otherwise you should to install the 'platform' package`,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -197,12 +195,12 @@ NOTE his command assumes you are already using the fabric8 developer platform - 
 func newInstallPlatformCmd() *cobra.Command {
 	p := &installPackageCmd{
 		packageMetadataUrl: platformMetadataUrl,
-		packageUrlPrefix: platformPackageUrlPrefix,
+		packageUrlPrefix:   platformPackageUrlPrefix,
 	}
 	cmd := &cobra.Command{
 		Use:   "platform [NAMES] [flags]",
 		Short: "installs the Funktion Platform into the current namespace (when not using fabric8)",
-		Long:  `This command will install the Funktion Platform into the current namespace
+		Long: `This command will install the Funktion Platform into the current namespace
 
 NOTE that if you are not already running the fabric8 developer platform - otherwise you only need to install the 'operator' package`,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -235,7 +233,7 @@ func (p *installConnectorCmd) run() error {
 		return err
 	}
 	uri := fmt.Sprintf(urlJoin(mavenRepo, connectorPackageUrlPrefix), version) + "kubernetes.yml"
-	return p.installConnectors(uri, version);
+	return p.installConnectors(uri, version)
 }
 
 func (p *installConnectorCmd) installConnectors(uri string, version string) error {
@@ -445,42 +443,42 @@ func (p *installPackageCmd) installPackage(uri string, version string) error {
 	return cmd.Run()
 
 	/*
-	TODO try use the dynamic client
+		TODO try use the dynamic client
 
-		list, err := loadList(uri)
-		if err != nil {
-			return err
-		}
-		resources, err := p.kubeclient.ServerResources()
-		if err != nil {
-			return err
-		}
-		resourceMap := map[string]*unversioned.APIResource{}
-		for _, ra := range resources {
-			for _, r := range ra.APIResources {
-				resourceMap[r.Kind] = &r
+			list, err := loadList(uri)
+			if err != nil {
+				return err
 			}
-		}
-		client := p.dynamicClient
-		ns := p.namespace
-		count := 0
-		m := meta.NewAccessor()
-		for _, item := range list.Items {
-			u := runtime.Unknown{Raw: item.Raw}
-			kind := u.Kind
-			resource := resourceMap[kind]
-			if resource != nil {
-				_, err := client.Resource(resource, ns).Create()
-				if err != nil {
-					return err
+			resources, err := p.kubeclient.ServerResources()
+			if err != nil {
+				return err
+			}
+			resourceMap := map[string]*unversioned.APIResource{}
+			for _, ra := range resources {
+				for _, r := range ra.APIResources {
+					resourceMap[r.Kind] = &r
 				}
-				count++
-			} else {
-				fmt.Printf("Could not find resource for kind %s\n", kind)
 			}
-		}
-		fmt.Printf("Installed %d resources from version: %s\n", count, version)
-		*/
+			client := p.dynamicClient
+			ns := p.namespace
+			count := 0
+			m := meta.NewAccessor()
+			for _, item := range list.Items {
+				u := runtime.Unknown{Raw: item.Raw}
+				kind := u.Kind
+				resource := resourceMap[kind]
+				if resource != nil {
+					_, err := client.Resource(resource, ns).Create()
+					if err != nil {
+						return err
+					}
+					count++
+				} else {
+					fmt.Printf("Could not find resource for kind %s\n", kind)
+				}
+			}
+			fmt.Printf("Installed %d resources from version: %s\n", count, version)
+	*/
 }
 
 func loadList(uri string) (*v1.List, error) {
@@ -549,10 +547,7 @@ func versionForUrl(v string, metadataUrl string) (string, error) {
 	return "", fmt.Errorf("Unknown version %s from URL %s when had valid version %v", v, metadataUrl, append(m.Versions, "latest"))
 }
 
-
-
 // urlJoin joins the given URL paths so that there is a / separating them but not a double //
 func urlJoin(repo string, path string) string {
 	return strings.TrimSuffix(repo, "/") + "/" + strings.TrimPrefix(path, "/")
 }
-

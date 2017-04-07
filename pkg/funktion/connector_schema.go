@@ -20,8 +20,8 @@ import (
 
 	"github.com/funktionio/funktion/pkg/spec"
 	"github.com/ghodss/yaml"
-	"unicode"
 	"strings"
+	"unicode"
 )
 
 func LoadConnectorSchema(yamlData []byte) (*spec.ConnectorSchema, error) {
@@ -38,9 +38,12 @@ func LoadConnectorSchema(yamlData []byte) (*spec.ConnectorSchema, error) {
 func HumanizeString(text string) string {
 	uncamel := UnCamelCaseString(text, " ")
 	switch len(uncamel) {
-	case 0: return ""
-	case 1: return strings.ToUpper(uncamel)
-		default: return strings.ToUpper(uncamel[0:1]) + uncamel[1:]
+	case 0:
+		return ""
+	case 1:
+		return strings.ToUpper(uncamel)
+	default:
+		return strings.ToUpper(uncamel[0:1]) + uncamel[1:]
 	}
 }
 

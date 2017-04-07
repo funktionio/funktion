@@ -18,10 +18,10 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/client-go/1.5/dynamic"
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api"
 	"k8s.io/client-go/1.5/tools/clientcmd"
-	"k8s.io/client-go/1.5/dynamic"
 
 	"github.com/funktionio/funktion/pkg/config"
 	"github.com/funktionio/funktion/pkg/constants"
@@ -34,10 +34,10 @@ import (
 )
 
 const (
-	flowKind = "flow"
+	flowKind      = "flow"
 	connectorKind = "connector"
-	runtimeKind = "runtime"
-	functionKind = "function"
+	runtimeKind   = "runtime"
+	functionKind  = "function"
 )
 
 var RootCmd = &cobra.Command{
@@ -67,7 +67,6 @@ func createKubernetesClient(cmd *cobra.Command, kubeConfigPath string, kubeclien
 	overrides := &clientcmd.ConfigOverrides{}
 	//overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
 	//clientcmd.BindOverrideFlags(overrides, cmd.Flags(), overrideFlags)
-
 
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 	cfg, err := kubeConfig.ClientConfig()
@@ -99,7 +98,6 @@ func createKubernetesDynamicClient(kubeConfigPath string) (*dynamic.Client, erro
 	overrides := &clientcmd.ConfigOverrides{}
 	//overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
 	//clientcmd.BindOverrideFlags(overrides, cmd.Flags(), overrideFlags)
-
 
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 	cfg, err := kubeConfig.ClientConfig()

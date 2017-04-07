@@ -23,9 +23,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/browser"
-	"github.com/funktionio/funktion/pkg/k8sutil"
 	"github.com/funktionio/funktion/pkg/funktion"
+	"github.com/funktionio/funktion/pkg/k8sutil"
+	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 
 	"k8s.io/client-go/1.5/kubernetes"
@@ -39,9 +39,9 @@ const (
 )
 
 type debugCmd struct {
-	kubeclient             *kubernetes.Clientset
-	cmd                    *cobra.Command
-	kubeConfigPath         string
+	kubeclient     *kubernetes.Clientset
+	cmd            *cobra.Command
+	kubeConfigPath string
 
 	namespace              string
 	kind                   string
@@ -52,8 +52,8 @@ type debugCmd struct {
 	chromeDevTools         bool
 	portText               string
 
-	podAction              k8sutil.PodAction
-	debugCmd               *exec.Cmd
+	podAction k8sutil.PodAction
+	debugCmd  *exec.Cmd
 }
 
 func init() {

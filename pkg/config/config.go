@@ -18,5 +18,3 @@ const (
 	WantUpdateNotification    = "WantUpdateNotification"
 	ReminderWaitPeriodInHours = "ReminderWaitPeriodInHours"
 )
-
-

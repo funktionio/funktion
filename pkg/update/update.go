@@ -34,18 +34,18 @@ import (
 	"github.com/blang/semver"
 	"github.com/golang/glog"
 	"github.com/google/go-github/github"
-	"github.com/kardianos/osext"
-	"github.com/spf13/viper"
 	update "github.com/inconshreveable/go-update"
-	pb "gopkg.in/cheggaaa/pb.v1"
+	"github.com/kardianos/osext"
 	githubutils "github.com/minishift/minishift/pkg/util/github"
+	"github.com/spf13/viper"
+	pb "gopkg.in/cheggaaa/pb.v1"
 	"path/filepath"
 )
 
 const (
-	timeLayout = time.RFC1123
+	timeLayout  = time.RFC1123
 	githubOwner = "funktionio"
-	githubRepo = "funktion"
+	githubRepo  = "funktion"
 )
 
 var (
@@ -93,7 +93,7 @@ automatically update from %s%s to %s%s now? [y/N] `,
 		}
 
 		fmt.Println("Skipping autoupdate")
-	}  else if viewLatest {
+	} else if viewLatest {
 		fmt.Printf("latest available version is %s\n", latestVersion)
 	}
 }
@@ -115,7 +115,7 @@ func getLatestVersionFromGitHub(githubOwner, githubRepo string) (semver.Version,
 	var (
 		release *github.RepositoryRelease
 		resp    *github.Response
-		err error
+		err     error
 	)
 	release, resp, err = client.Repositories.GetLatestRelease(githubOwner, githubRepo)
 	if err != nil {
@@ -219,7 +219,7 @@ func updateBinaryFile(url string, checksum []byte) {
 
 func downloadChecksum(v semver.Version, downloadBinary, downloadLinkFormat string) ([]byte, error) {
 	fmt.Println("Downloading updated binary checksum to validate updated binary")
-	u := fmt.Sprintf(downloadLinkFormat, v, downloadBinary + ".sha256")
+	u := fmt.Sprintf(downloadLinkFormat, v, downloadBinary+".sha256")
 	checksumResp, err := http.Get(u)
 	if err != nil {
 		return nil, err

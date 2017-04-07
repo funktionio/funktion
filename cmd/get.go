@@ -35,12 +35,12 @@ type getCmd struct {
 	cmd            *cobra.Command
 	kubeConfigPath string
 
-	kind           string
-	namespace      string
-	name           string
+	kind      string
+	namespace string
+	name      string
 
-	deployments    map[string]*v1beta1.Deployment
-	services       map[string]*v1.Service
+	deployments map[string]*v1beta1.Deployment
+	services    map[string]*v1.Service
 }
 
 func init() {
@@ -48,8 +48,7 @@ func init() {
 }
 
 func newGetCmd() *cobra.Command {
-	p := &getCmd{
-	}
+	p := &getCmd{}
 	cmd := &cobra.Command{
 		Use:   "get KIND [NAME] [flags]",
 		Short: "gets a list of the resources",

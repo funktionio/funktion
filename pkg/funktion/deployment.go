@@ -292,7 +292,7 @@ func parseEnvVars(text string) []v1.EnvVar {
 				continue
 			}
 			answer = append(answer, v1.EnvVar{
-				Name: pair[0],
+				Name:  pair[0],
 				Value: pair[1],
 			})
 		}

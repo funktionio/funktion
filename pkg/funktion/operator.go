@@ -40,12 +40,12 @@ type Operator struct {
 	//funktionClient *rest.RESTClient
 	logger log.Logger
 
-	connectorInf    cache.SharedIndexInformer
-	flowInf cache.SharedIndexInformer
-	runtimeInf      cache.SharedIndexInformer
-	functionInf     cache.SharedIndexInformer
-	deploymentInf   cache.SharedIndexInformer
-	serviceInf      cache.SharedIndexInformer
+	connectorInf  cache.SharedIndexInformer
+	flowInf       cache.SharedIndexInformer
+	runtimeInf    cache.SharedIndexInformer
+	functionInf   cache.SharedIndexInformer
+	deploymentInf cache.SharedIndexInformer
+	serviceInf    cache.SharedIndexInformer
 
 	queue *queue.Queue
 }
