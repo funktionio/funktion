@@ -33,8 +33,8 @@ You will need a recent install of `go` along with `glide`.
 Then the first time you want to build you need to do this:
 
 ```
-mkdir -p $GOROOT/funktionio/funktion
-cd $GOROOT/funktionio
+mkdir -p $GOHOME/src/github.com/funktionio
+cd $GOHOME/src/github.com/funktionio
 git clone https://github.com/funktionio/funktion.git
 cd funktion
 make bootstrap
