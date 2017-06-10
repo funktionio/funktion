@@ -80,7 +80,6 @@ func newApplyCmd() *cobra.Command {
 	cmd.AddCommand(newCreateFlowCmd())
 
 	f := cmd.Flags()
-	f.StringVarP(&p.file, "file", "f", "", "the file name that contains the source code for the function to create")
 	p.setupCommonFlags(f)
 	return cmd
 }
@@ -106,7 +105,6 @@ func newCreateCmd() *cobra.Command {
 	cmd.AddCommand(newCreateFlowCmd())
 
 	f := cmd.Flags()
-	f.StringVarP(&p.file, "file", "f", "", "the file name that contains the source code for the function to create")
 	p.setupCommonFlags(f)
 	return cmd
 }
@@ -181,6 +179,7 @@ func (p *createFunctionCmd) setupCommonFlags(f *pflag.FlagSet) {
 	f.StringVar(&p.namespace, "namespace", "", "the namespace to create the resource")
 	f.BoolVarP(&p.watch, "watch", "w", false, "whether to keep watching the files for changes to the function source code")
 	f.BoolVarP(&p.debug, "debug", "d", false, "enable debugging for the function?")
+	f.StringVarP(&p.file, "file", "f", "", "the file name that contains the source code for the function to create")
 }
 
 func (p *createFunctionCmd) createFunctionFromCLI() error {
