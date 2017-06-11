@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -33,7 +34,6 @@ import (
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api/v1"
 	"k8s.io/client-go/1.5/pkg/runtime"
-	"os/exec"
 )
 
 const (
@@ -41,11 +41,11 @@ const (
 	connectorPackageUrlPrefix = "io/fabric8/funktion/funktion-connectors/%[1]s/funktion-connectors-%[1]s-"
 	runtimePackageUrlPrefix   = "io/fabric8/funktion/funktion-runtimes/%[1]s/funktion-runtimes-%[1]s-"
 
-	operatorMetadataUrl      = "io/fabric8/platform/apps/funktion-operator/maven-metadata.xml"
-	operatorPackageUrlPrefix = "io/fabric8/platform/apps/funktion-operator/%[1]s/funktion-operator-%[1]s-"
+	operatorMetadataUrl      = "io/fabric8/funktion/apps/funktion-operator/maven-metadata.xml"
+	operatorPackageUrlPrefix = "io/fabric8/funktion/apps/funktion-operator/%[1]s/funktion-operator-%[1]s-"
 
-	platformMetadataUrl      = "io/fabric8/platform/packages/funktion-platform/maven-metadata.xml"
-	platformPackageUrlPrefix = "io/fabric8/platform/packages/funktion-platform/%[1]s/funktion-platform-%[1]s-"
+	platformMetadataUrl      = "io/fabric8/funktion/packages/funktion-platform/maven-metadata.xml"
+	platformPackageUrlPrefix = "io/fabric8/funktion/packages/funktion-platform/%[1]s/funktion-platform-%[1]s-"
 )
 
 type installConnectorCmd struct {
@@ -177,7 +177,7 @@ func newInstallOperatorCmd() *cobra.Command {
 		Short: "installs the Funktion Operator into the current namespace (when using fabric8)",
 		Long: `This command will install the Funktion Operator into the current namespace
 
-NOTE his command assumes you are already using the fabric8 developer platform - otherwise you should to install the 'platform' package`,
+NOTE this command assumes you are already using the fabric8 developer platform - otherwise you should to install the 'platform' package`,
 		Run: func(cmd *cobra.Command, args []string) {
 			p.cmd = cmd
 			err := createKubernetesClient(cmd, p.kubeConfigPath, &p.kubeclient, &p.namespace)
@@ -221,7 +221,7 @@ func (p *installPackageCmd) configureFlags(cmd *cobra.Command) {
 	f := cmd.Flags()
 	f.StringVar(&p.kubeConfigPath, "kubeconfig", "", "the directory to look for the kubernetes configuration")
 	f.StringVarP(&p.mavenRepo, "maven-repo", "m", "https://repo1.maven.org/maven2/", "the maven repository used to download the Connector releases")
-	f.StringVarP(&p.namespace, "namespace", "n", "funktion-system", "the namespace to query")
+	f.StringVarP(&p.namespace, "namespace", "n", "", "the namespace to use otherwise the current namespace will be used")
 	f.StringVarP(&p.version, "version", "v", "latest", "the version of the connectors to install")
 	f.BoolVar(&p.replace, "replace", false, "if enabled we will replace exising Connectors with installed version")
 
@@ -397,7 +397,15 @@ func (p *installPackageCmd) run() error {
 	if err != nil {
 		return err
 	}
-	uri := fmt.Sprintf(urlJoin(mavenRepo, p.packageUrlPrefix), version) + "kubernetes.yml"
+	extension := "kubernetes.yml"
+	openshift, err := p.isOpenShift()
+	if err != nil {
+		fmt.Printf("WARNING %v\n", err)
+	}
+	if openshift {
+		extension = "openshift.yml"
+	}
+	uri := fmt.Sprintf(urlJoin(mavenRepo, p.packageUrlPrefix), version) + extension
 	err = p.checkNamespaceExists()
 	if err != nil {
 		return err
@@ -408,6 +416,17 @@ func (p *installPackageCmd) run() error {
 	}
 	return nil
 }
+
+func (p *installPackageCmd) isOpenShift() (bool, error) {
+	c := p.kubeclient
+	_, err := c.Core().GetRESTClient().Get().AbsPath("/oapi").Do().Raw()
+	if err != nil {
+		// ignore errors for now
+		return false, nil
+	}
+	return true, nil
+}
+
 
 func (p *installPackageCmd) checkNamespaceExists() error {
 	name := p.namespace
@@ -436,47 +455,51 @@ func (p *installPackageCmd) installPackage(uri string, version string) error {
 		return err
 	}
 	args := []string{"apply", "--namespace", p.namespace, "-f", uri}
+	namespace := p.namespace
+	if len(namespace) > 0 {
+		args = []string{"apply", "--namespace", p.namespace, "-f", uri}
+	}
 	fmt.Printf("%s %s\n\n", filepath.Base(binaryFile), strings.Join(args, " "))
 	cmd := exec.Command(binaryFile, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
 
-	/*
-		TODO try use the dynamic client
+			/*
+				TODO try use the dynamic client
 
-			list, err := loadList(uri)
-			if err != nil {
+					list, err := loadList(uri)
+					if err != nil {
 				return err
 			}
-			resources, err := p.kubeclient.ServerResources()
-			if err != nil {
-				return err
-			}
-			resourceMap := map[string]*unversioned.APIResource{}
-			for _, ra := range resources {
-				for _, r := range ra.APIResources {
-					resourceMap[r.Kind] = &r
-				}
-			}
-			client := p.dynamicClient
-			ns := p.namespace
-			count := 0
-			m := meta.NewAccessor()
-			for _, item := range list.Items {
-				u := runtime.Unknown{Raw: item.Raw}
-				kind := u.Kind
-				resource := resourceMap[kind]
-				if resource != nil {
-					_, err := client.Resource(resource, ns).Create()
+					resources, err := p.kubeclient.ServerResources()
 					if err != nil {
 						return err
 					}
-					count++
-				} else {
-					fmt.Printf("Could not find resource for kind %s\n", kind)
-				}
-			}
+					resourceMap := map[string]*unversioned.APIResource{}
+					for _, ra := range resources {
+						for _, r := range ra.APIResources {
+							resourceMap[r.Kind] = &r
+						}
+					}
+					client := p.dynamicClient
+					ns := p.namespace
+					count := 0
+					m := meta.NewAccessor()
+					for _, item := range list.Items {
+						u := runtime.Unknown{Raw: item.Raw}
+						kind := u.Kind
+						resource := resourceMap[kind]
+						if resource != nil {
+							_, err := client.Resource(resource, ns).Create()
+							if err != nil {
+								return err
+							}
+							count++
+						} else {
+							fmt.Printf("Could not find resource for kind %s\n", kind)
+						}
+					}
 			fmt.Printf("Installed %d resources from version: %s\n", count, version)
 	*/
 }
