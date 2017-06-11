@@ -17,7 +17,7 @@ def updateDownstreamDependencies(v) {
   pushPomPropertyChangePR {
     propertyName = 'funktion.version'
     projects = [
-            'fabric8io/fabric8-platform'
+            'funktionio/funktion-platform'
     ]
     version = v
   }
