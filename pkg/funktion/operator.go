@@ -57,7 +57,7 @@ type ResourceKey struct {
 }
 
 // New creates a new controller.
-func New(cfg *rest.Config, logger log.Logger) (*Operator, error) {
+func New(cfg *rest.Config, logger log.Logger, namespace string) (*Operator, error) {
 	logger.Log("msg", "starting up!")
 	client, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
@@ -89,37 +89,37 @@ func New(cfg *rest.Config, logger log.Logger) (*Operator, error) {
 	}
 
 	c.connectorInf = cache.NewSharedIndexInformer(
-		NewConfigMapListWatch(c.kclient, *connectorListOpts),
+		NewConfigMapListWatch(c.kclient, *connectorListOpts, namespace),
 		&v1.ConfigMap{},
 		resyncPeriod,
 		cache.Indexers{},
 	)
 	c.flowInf = cache.NewSharedIndexInformer(
-		NewConfigMapListWatch(c.kclient, *flowListOpts),
+		NewConfigMapListWatch(c.kclient, *flowListOpts, namespace),
 		&v1.ConfigMap{},
 		resyncPeriod,
 		cache.Indexers{},
 	)
 	c.runtimeInf = cache.NewSharedIndexInformer(
-		NewConfigMapListWatch(c.kclient, *runtimeListOpts),
+		NewConfigMapListWatch(c.kclient, *runtimeListOpts, namespace),
 		&v1.ConfigMap{},
 		resyncPeriod,
 		cache.Indexers{},
 	)
 	c.functionInf = cache.NewSharedIndexInformer(
-		NewConfigMapListWatch(c.kclient, *functionListOpts),
+		NewConfigMapListWatch(c.kclient, *functionListOpts, namespace),
 		&v1.ConfigMap{},
 		resyncPeriod,
 		cache.Indexers{},
 	)
 	c.deploymentInf = cache.NewSharedIndexInformer(
-		cache.NewListWatchFromClient(c.kclient.Extensions().GetRESTClient(), "deployments", api.NamespaceAll, nil),
+		cache.NewListWatchFromClient(c.kclient.Extensions().GetRESTClient(), "deployments", namespace, nil),
 		&v1beta1.Deployment{},
 		resyncPeriod,
 		cache.Indexers{},
 	)
 	c.serviceInf = cache.NewSharedIndexInformer(
-		NewServiceListWatch(c.kclient),
+		NewServiceListWatch(c.kclient, namespace),
 		&v1.Service{},
 		resyncPeriod,
 		cache.Indexers{},

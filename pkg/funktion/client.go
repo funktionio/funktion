@@ -24,8 +24,8 @@ import (
 )
 
 // NewConfigMapListWatch returns a new ListWatch for ConfigMaps with the given listOptions
-func NewConfigMapListWatch(client *kubernetes.Clientset, listOpts api.ListOptions) *cache.ListWatch {
-	configMaps := client.ConfigMaps(api.NamespaceAll)
+func NewConfigMapListWatch(client *kubernetes.Clientset, listOpts api.ListOptions, namespace string) *cache.ListWatch {
+	configMaps := client.ConfigMaps(namespace)
 
 	return &cache.ListWatch{
 		ListFunc: func(options api.ListOptions) (runtime.Object, error) {
@@ -38,9 +38,9 @@ func NewConfigMapListWatch(client *kubernetes.Clientset, listOpts api.ListOption
 }
 
 // NewServiceListWatch creates a watch on services
-func NewServiceListWatch(client *kubernetes.Clientset) *cache.ListWatch {
+func NewServiceListWatch(client *kubernetes.Clientset, namespace string) *cache.ListWatch {
 	listOpts := api.ListOptions{}
-	services := client.Services(api.NamespaceAll)
+	services := client.Services(namespace)
 	return &cache.ListWatch{
 		ListFunc: func(options api.ListOptions) (runtime.Object, error) {
 			return services.List(listOpts)

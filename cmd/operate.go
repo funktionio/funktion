@@ -22,27 +22,41 @@ import (
 	"syscall"
 
 	"github.com/funktionio/funktion/pkg/funktion"
-
 	"github.com/go-kit/kit/log"
+
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
+	"k8s.io/client-go/1.5/pkg/api"
 	"k8s.io/client-go/1.5/tools/clientcmd"
 )
 
 func init() {
-	RootCmd.AddCommand(versionCmd)
+	RootCmd.AddCommand(newOperateCmd())
 }
 
-var versionCmd = &cobra.Command{
-	Use:   "operate",
-	Short: "Runs the funktion operator",
-	Long:  `This command will startup the operator for funktion`,
-	RunE:  operateCommand,
+type operateCmd struct {
+	namespace     string
+	allNamespaces bool
 }
 
-func operateCommand(cmd *cobra.Command, args []string) error {
-	fmt.Println("Funktion operator is starting")
+func newOperateCmd() *cobra.Command {
+	p := &operateCmd{}
+	cmd := &cobra.Command{
+		Use:   "operate",
+		Short: "Runs the funktion operator",
+		Long:  `This command will startup the operator for funktion`,
+		Run: func(cmd *cobra.Command, args []string) {
+			handleError(p.operate(cmd, args))
+		},
+	}
 
+	f := cmd.Flags()
+	f.StringVarP(&p.namespace, "namespace", "n", "", "the name of the namespace to watch for resources")
+	f.BoolVarP(&p.allNamespaces, "all", "a", false, "if enabled all namespaces will be watched. This option typically requires a cluster administrator role")
+	return cmd
+}
+
+func (p *operateCmd) operate(cmd *cobra.Command, args []string) error {
 	logger := log.NewContext(log.NewLogfmtLogger(os.Stdout)).
 		With("ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller).
 		With("operator", "funktion")
@@ -66,7 +80,26 @@ func operateCommand(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ko, err := funktion.New(cfg, logger)
+	namespace := p.namespace
+	if p.allNamespaces {
+		namespace = api.NamespaceAll
+		fmt.Printf("Funktion operator is starting watching namespace: %s\n", namespace)
+	} else {
+		if len(namespace) == 0 {
+			namespace = os.Getenv("KUBERNETES_NAMESPACE")
+			if len(namespace) <= 0 {
+				namespace, _, err := kubeConfig.Namespace()
+				if err != nil {
+					return fmt.Errorf("Could not detect namespace %v", err)
+				}
+				if len(namespace) <= 0 {
+					return fmt.Errorf("No namespace argument or $KUBERNETES_NAMESPACE environment variable specified and we could not detect the current namespace!")
+				}
+			}
+		}
+		fmt.Printf("Funktion operator is starting watching namespace: '%s'\n", namespace)
+	}
+	ko, err := funktion.New(cfg, logger, namespace)
 	if err != nil {
 		logger.Log("error", err)
 		return err
