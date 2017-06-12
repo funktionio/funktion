@@ -100,7 +100,9 @@ func (p *getCmd) run() error {
 		// TODO lets assume the name of the Deployment is the name of the Flow
 		// but we may want to use a label instead to link them?
 		name := item.Name
-		p.deployments[name] = &item
+		copy := v1beta1.Deployment{}
+		copy = item
+		p.deployments[name] = &copy
 	}
 	if kind == functionKind {
 		ss, err := kubeclient.Services(p.namespace).List(api.ListOptions{})
@@ -111,7 +113,9 @@ func (p *getCmd) run() error {
 			// TODO lets assume the name of the Service is the name of the Function
 			// but we may want to use a label instead to link them?
 			name := item.Name
-			p.services[name] = &item
+			copy := v1.Service{}
+			copy = item
+			p.services[name] = &copy
 		}
 	}
 	name := p.name
