@@ -1,6 +1,8 @@
 # NOTE this open source project is now sandboxed
 
-Red Hat has stopped funding this OSS project! Feel free to fork it and maintain it or we recommend you try use one of these open source alternatives:
+Red Hat has stopped funding this OSS project! Feel free to fork it and maintain it if you like.
+
+If you're looking for a kubernetes based FaaS we recommend you try use one of these open source alternatives:
 
 * [kubeless](http://kubeless.io/)
 * [openwhisk](https://openwhisk.apache.org/)
