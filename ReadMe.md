@@ -1,3 +1,10 @@
+# NOTE this open source project is now sandboxed
+
+Red Hat has stopped funding this OSS project! Feel free to fork it and maintain it or we recommend you try use one of these open source alternatives:
+
+* [kubeless](http://kubeless.io/)
+* [openwhisk](https://openwhisk.apache.org/)
+
 # <img src="https://raw.githubusercontent.com/funktionio/funktion-connectors/master/docs/images/icon.png" width="24" height="24"/>&nbsp; Funktion
 
 **Funktion** is an open source event driven lambda style programming model on top of [Kubernetes](http://kubernetes.io). This project provides a command line tool for working with `Funktion`
